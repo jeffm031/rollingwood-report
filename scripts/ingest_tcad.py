@@ -7,22 +7,43 @@ prompts/roster/tier3_tcad.yml.
 
 Filter:
   - Roll Code == "Residential"
-  - Exemptions NOT starting with "EX-"  (excludes tax-exempt entities like
-    churches and city-owned parcels)
+  - Exemptions NOT starting with "EX-" (excludes tax-exempt parcels like
+    churches and city-owned property)
+
+Row classification (new 2026-04-20):
+  - If `is_entity(owner_name)` is True → entity, skip.
+  - If `is_entity(owner_name + " " + ofn)` is True:
+      - If owner_name contains trust-adjacent tokens (REVOCABLE, LIVING,
+        QUALIFIED, PERSONAL, RESIDENCE, MANAGEMENT, FAMILY, CHARITABLE,
+        INSURANCE, IRREVOCABLE, ETAL, HOLDING), full-row skip.
+      - Else parse owner_name only (treat OFN as entity tail, not spouse).
+  - Else → normal parse with OFN as spouse source.
 
 Parse:
-  - Entity keywords (TRUST, LLC, LP, INC, CORP, TRST, CHURCH, FOUNDATION, etc.)
-    trigger a skip. Skipped owner strings are logged to
-    prompts/roster/tcad_unresolved_trusts.yml for later manual resolution.
-  - "LASTNAME, FIRST MIDDLE" and "LASTNAME FIRST MIDDLE" both handled (the
-    TCAD file uses surname-first with or without comma).
-  - Joint owners split on " & " or " AND ". Primary surname is used for each
-    joint owner unless Owner First Name column supplies a distinct surname
-    (e.g. "ROLOSON WALTER J &" + Owner First Name = "KENDRA MAYER ROLOSON").
-  - Suffixes (JR, SR, II, III, IV) are moved to the end of the canonical name.
+  - "LASTNAME, FIRST MIDDLE" and "LASTNAME FIRST MIDDLE" both handled.
+  - Joint owners split on " & " or " AND ". For each joint owner, if the
+    last token is ≥4 letters (and not a suffix), treat it as a distinct
+    surname; otherwise share the primary surname (1-3 letter tokens are
+    middle initials).
+  - OFN handling:
+      * Leading "& " is stripped (TCAD continuation marker).
+      * If OFN parses to a clean "First [Middle] Last" shape, it either
+        replaces an Owner-Name-derived person (when OFN's first-tokens
+        prefix-match) or appends as a new person.
+      * Single-token OFN completes truncated joint first names
+        ("SHAN" + OFN "SHANTHERI" → "Shantheri Jayakumar").
+  - Within-row strict-prefix dedup catches TCAD field-width truncations
+    like "Melissa Greenwoo" vs "Melissa Greenwood" (same row).
+  - Suffixes (JR, SR, II, III, IV, V, VI) are moved to the end of the
+    canonical name.
   - Hyphenated surnames and middle initials are preserved.
 
 Privacy rule: addresses are NOT included in the YAML output.
+
+CLI:
+  --write    Commit tier3_tcad.yml + tcad_unresolved_trusts.yml.
+  --test     Run regression test against tests/tcad_test_sample.yml (no
+             network, no writes); exits 0 on pass, 1 on fail.
 """
 
 from __future__ import annotations
@@ -32,8 +53,7 @@ import csv
 import re
 import shutil
 import sys
-from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
@@ -45,42 +65,76 @@ LOCAL_CSV = DATA_DIR / "rollingwood_parcels.csv"
 ROSTER_DIR = ROOT / "prompts" / "roster"
 TIER3_FILE = ROSTER_DIR / "tier3_tcad.yml"
 TRUSTS_FILE = ROSTER_DIR / "tcad_unresolved_trusts.yml"
+TEST_FIXTURE = ROOT / "tests" / "tcad_test_sample.yml"
 
 # --- Entity detection --------------------------------------------------------
 
-ENTITY_TOKENS = {
+ENTITY_TOKENS = frozenset({
     "TRUST", "TRUSTEE", "TRUSTEES", "TRST",
     "LLC", "LP", "LLP", "LTD", "INC", "CORP", "CORPORATION",
-    "PC", "PLLC", "COMPANY", "HOLDINGS", "PROPERTIES",
+    "PC", "PLLC", "COMPANY", "HOLDINGS", "HOLDING", "PROPERTIES",
     "FOUNDATION", "ASSN", "ASSOCIATION", "ASSOCIATES", "PARTNERS",
     "PARTNERSHIP", "PTRS", "INVESTMENTS",
     "ESTATE", "CHURCH", "MINISTRIES", "TEMPLE", "SYNAGOGUE",
     "ISD", "HOA", "UNIVERSITY", "COLLEGE", "SCHOOL",
-}
-ENTITY_PHRASES = [
+    "TCAD",
+})
+
+ENTITY_PHRASES = (
     "CITY OF ", "COUNTY OF ", "STATE OF ", "ESTATE OF ",
     "LIVING TRUST", "FAMILY TRUST", "REVOCABLE TRUST",
     "IRREVOCABLE TRUST", "CHARITABLE TRUST", "INSURANCE TRUST",
+    "MANAGEMENT TRUST", "QUALIFIED PERSONAL RESIDENCE",
+    "PERSONAL RESIDENCE TRUST",
     "TRUSTEE OF", "TRUSTEES OF",
     "L.L.C.", "L.P.", "P.L.L.C.",
-]
+)
+
+TRUST_ADJACENT = frozenset({
+    "REVOCABLE", "IRREVOCABLE", "LIVING", "QUALIFIED", "PERSONAL",
+    "RESIDENCE", "MANAGEMENT", "FAMILY", "CHARITABLE", "INSURANCE",
+    "ETAL", "HOLDING", "EXEMPT", "QPRT",
+})
+
+SUFFIXES = frozenset({"JR", "SR", "II", "III", "IV", "V", "VI"})
 
 
-def is_entity(owner_name: str) -> bool:
-    if not owner_name:
-        return True
-    upper = owner_name.upper()
+def _token_set(s: str) -> frozenset:
+    return frozenset(re.findall(r"\b[A-Z][A-Z'&.]*\b", (s or "").upper()))
+
+
+def _is_entity_text(text: str) -> bool:
+    if not text:
+        return False
+    upper = text.upper()
     for phrase in ENTITY_PHRASES:
         if phrase in upper:
             return True
-    tokens = re.findall(r"\b[A-Z][A-Z'&.]*\b", upper)
-    return bool(set(tokens) & ENTITY_TOKENS)
+    return bool(_token_set(text) & ENTITY_TOKENS)
 
 
-# --- Owner-name parsing ------------------------------------------------------
+def classify_row(owner_name: str, ofn: str) -> str:
+    """Return 'entity', 'person-only', or 'normal'.
 
-SUFFIXES = {"JR", "SR", "II", "III", "IV", "V", "VI"}
+    - 'entity': full-row skip.
+    - 'person-only': parse owner_name, ignore OFN (OFN is an entity tail).
+    - 'normal': parse owner_name with OFN as spouse source.
+    """
+    if not owner_name:
+        return "entity"
+    if _is_entity_text(owner_name):
+        return "entity"
+    concat = f"{owner_name} {ofn or ''}".strip()
+    if not _is_entity_text(concat):
+        return "normal"
+    # OFN introduces entity tokens. Check owner_name for trust-adjacent
+    # tokens — if present, the person data in owner_name is also polluted.
+    if _token_set(owner_name) & TRUST_ADJACENT:
+        return "entity"
+    return "person-only"
 
+
+# --- Name parsing ------------------------------------------------------------
 
 @dataclass
 class Person:
@@ -95,7 +149,6 @@ class Person:
 
 
 def _title_case(s: str) -> str:
-    """Title-case a name, handling Mc/O', hyphens, apostrophes, suffixes."""
     if not s:
         return s
     out = []
@@ -116,21 +169,51 @@ def _title_case(s: str) -> str:
     return " ".join(out)
 
 
-def _pull_suffix(first_tokens: list) -> tuple:
-    """If the last token is a suffix (JR, SR, III, ...), pop it."""
-    if first_tokens and first_tokens[-1].upper() in SUFFIXES:
-        return first_tokens[:-1], first_tokens[-1].upper()
-    return first_tokens, ""
+def _pull_suffix(tokens: list) -> tuple:
+    if tokens and tokens[-1].upper() in SUFFIXES:
+        raw = tokens[-1].upper()
+        formatted = raw if raw in {"II", "III", "IV", "V", "VI"} else raw.title()
+        return tokens[:-1], formatted
+    return tokens, ""
 
 
-def parse_owner(owner_name: str, owner_first_name: str = "") -> list:
-    """Parse a TCAD Owner Name into a list of Person records. Returns [] if
-    the string is an entity (caller should have already filtered via is_entity)."""
+def _split_joint_owner(tokens: list, primary_last: str) -> tuple:
+    """For a joint owner's token list, decide first name and surname.
+
+    Rule: if the last token is ≥4 letters (and not a suffix), treat it as
+    a distinct surname. Otherwise (1-3 letter token or suffix) the shared
+    primary surname applies; the token is a middle initial.
+    """
+    tokens, suffix = _pull_suffix(tokens)
+    if not tokens:
+        return "", primary_last, suffix
+    if len(tokens) >= 2 and len(tokens[-1]) >= 4:
+        last = tokens[-1]
+        first = " ".join(tokens[:-1])
+    else:
+        last = primary_last
+        first = " ".join(tokens)
+    return first, last, suffix
+
+
+def _strict_prefix_match(shorter: str, longer: str) -> bool:
+    """True if `shorter` is a strict character prefix of `longer` (len < len)."""
+    return len(shorter) < len(longer) and longer.startswith(shorter)
+
+
+def parse_owner(owner_name: str, owner_first_name: str = "", kind: str = "normal") -> list:
+    """Parse a TCAD row's Owner Name + OFN into a list of Person records.
+
+    `kind`:
+      - "normal": parse OFN as spouse/joint data directly.
+      - "person-only": strip entity tail from OFN first, then parse any
+        person data that remains (recovers persons like Gay Erwin from
+        'ALAN & GAY ERWIN TRUST' or Scott Campbell from '... FAMILY TRST').
+    """
     if not owner_name:
         return []
     name = re.sub(r"\s+", " ", owner_name.strip()).rstrip("&").rstrip().strip()
 
-    # Separate primary surname.
     if "," in name:
         last_raw, rest = (x.strip() for x in name.split(",", 1))
     else:
@@ -138,64 +221,177 @@ def parse_owner(owner_name: str, owner_first_name: str = "") -> list:
         last_raw = parts[0]
         rest = parts[1] if len(parts) > 1 else ""
 
-    primary_last = last_raw.strip()
+    primary_last_raw = last_raw.strip()
+    primary_last = _title_case(primary_last_raw)
 
-    # Split "rest" (the first-names part) on & or AND.
     joint_parts = [p.strip() for p in re.split(r"\s+(?:&|AND)\s+", rest) if p.strip()]
 
     people: list = []
 
-    # Primary owner (first entry)
     if joint_parts:
         first_tokens = joint_parts[0].split()
         first_tokens, suffix = _pull_suffix(first_tokens)
         if first_tokens:
             people.append(Person(
                 first=_title_case(" ".join(first_tokens)),
-                last=_title_case(primary_last),
+                last=primary_last,
                 suffix=suffix,
             ))
 
-    # Secondary joint owners from Owner Name string
     for jp in joint_parts[1:]:
         tokens = jp.split()
-        tokens, suffix = _pull_suffix(tokens)
-        if not tokens:
+        first, last, suffix = _split_joint_owner(tokens, primary_last_raw)
+        if not first and not last:
             continue
         people.append(Person(
-            first=_title_case(" ".join(tokens)),
-            last=_title_case(primary_last),
+            first=_title_case(first),
+            last=_title_case(last),
             suffix=suffix,
         ))
 
-    # If Owner Name ended with trailing "&" (signaled by an empty joint slot
-    # before the rstrip), OR Owner First Name gives us additional name info
-    # that's clearly distinct, use it.
+    # --- OFN handling -------------------------------------------------------
     ofn = (owner_first_name or "").strip()
-    if ofn:
-        ofn_tokens = ofn.split()
-        ofn_tokens, suffix = _pull_suffix(ofn_tokens)
-        if len(ofn_tokens) >= 2:
-            # Assume "FIRST [MIDDLE] LAST" format. Last token is surname.
-            ofn_last = ofn_tokens[-1]
-            ofn_first = " ".join(ofn_tokens[:-1])
-            # Only add if not already in `people` under either surname.
-            candidate = Person(
-                first=_title_case(ofn_first),
-                last=_title_case(ofn_last),
-                suffix=suffix,
-            )
-            if not any(p.canonical_name == candidate.canonical_name for p in people):
-                # Also check: did the Owner Name end in a trailing "&" (truncation)?
-                # If so, this column is the spouse. If not, it may still be the
-                # spouse (useful extra data). Either way, add.
-                people.append(candidate)
+    if kind == "person-only":
+        ofn = _strip_entity_tail(ofn)
 
-    return people
+    # Single-token OFN as a truncation completion for a joint owner.
+    ofn_for_completion = ofn
+    if ofn_for_completion.startswith("& "):
+        ofn_for_completion = ofn_for_completion[2:].strip()
+    ofc_tokens = ofn_for_completion.split()
+    if len(ofc_tokens) == 1:
+        completion = ofc_tokens[0].upper()
+        for i, p in enumerate(people):
+            first_tokens = p.first.split()
+            if (len(first_tokens) == 1
+                    and completion.startswith(first_tokens[0].upper())
+                    and completion != first_tokens[0].upper()):
+                people[i] = Person(
+                    first=_title_case(ofc_tokens[0]),
+                    last=p.last,
+                    suffix=p.suffix,
+                )
+                break
+        return _dedupe_within_row(people)
+
+    # Multi-token OFN: parse as zero-or-more persons.
+    ofn_people = _parse_ofn_persons(ofn, primary_last_raw)
+    for op in ofn_people:
+        op_first_tokens = op.first.split()
+        action = "append"
+        replace_idx = -1
+        for i, p in enumerate(people):
+            p_first_tokens = p.first.split()
+            if _tokens_prefix(op_first_tokens, p_first_tokens):
+                # op first is a strict prefix of p first.
+                if op.last == p.last:
+                    # Same surname: op is the less-complete version. Skip it.
+                    action = "drop"
+                else:
+                    # Different surname: OFN corrects a joint-owner's
+                    # surname truncation (Nicastro/Baer, Springer/Serfass).
+                    action = "replace"
+                    replace_idx = i
+                break
+            if _tokens_prefix(p_first_tokens, op_first_tokens):
+                # p first is a strict prefix of op first: OFN is the more-
+                # complete version of an existing person.
+                action = "replace"
+                replace_idx = i
+                break
+        if action == "drop":
+            continue
+        if action == "replace":
+            people[replace_idx] = op
+        else:
+            if not any(p.canonical_name == op.canonical_name for p in people):
+                people.append(op)
+
+    return _dedupe_within_row(people)
+
+
+def _tokens_prefix(short: list, long: list) -> bool:
+    """True if `short` token list is a prefix of `long` (elementwise, case-insensitive),
+    and `long` is strictly longer. Used for OFN → Owner-Name replacement."""
+    if len(short) == 0 or len(short) >= len(long):
+        return False
+    return all(s.upper() == l.upper() for s, l in zip(short, long))
+
+
+def _strip_entity_tail(ofn: str) -> str:
+    """Strip OFN tokens from the first entity/trust-adjacent token onward.
+
+    Used in 'person-only' rows where OFN contains extractable person data
+    before an entity tail (e.g., 'ALAN & GAY ERWIN TRUST' → 'ALAN & GAY ERWIN',
+    'SCOTT EUGENE CAMPBELL FAMILY TRST' → 'SCOTT EUGENE CAMPBELL').
+    Returns '' if OFN is nothing but entity/trust-adjacent tokens.
+    """
+    if not ofn:
+        return ""
+    tokens = ofn.split()
+    for i, t in enumerate(tokens):
+        if t.upper() in ENTITY_TOKENS or t.upper() in TRUST_ADJACENT:
+            return " ".join(tokens[:i]).strip().rstrip("&").strip()
+    return ofn
+
+
+def _parse_ofn_persons(ofn: str, primary_last_raw: str) -> list:
+    """Parse OFN into zero or more Person records.
+
+    Handles both single-person ('First [Middle] Last') and joint-owner
+    ('A & B' or 'A & B LAST') forms. Strips leading '& ' continuation markers.
+    Returns [] when OFN is empty or yields no extractable persons.
+    """
+    if not ofn:
+        return []
+    if ofn.startswith("& "):
+        ofn = ofn[2:].strip()
+    if not ofn:
+        return []
+    parts = [p.strip() for p in re.split(r"\s+(?:&|AND)\s+", ofn) if p.strip()]
+    if len(parts) >= 2:
+        people = []
+        for part in parts:
+            tokens = part.split()
+            first, last, suffix = _split_joint_owner(tokens, primary_last_raw)
+            if not first and not last:
+                continue
+            people.append(Person(
+                first=_title_case(first),
+                last=_title_case(last),
+                suffix=suffix,
+            ))
+        return people
+    tokens = ofn.split()
+    tokens, suffix = _pull_suffix(tokens)
+    if len(tokens) < 2:
+        return []
+    last = tokens[-1]
+    first = " ".join(tokens[:-1])
+    return [Person(first=_title_case(first), last=_title_case(last), suffix=suffix)]
+
+
+def _dedupe_within_row(people: list) -> list:
+    """Remove persons whose canonical_name is a strict character prefix of
+    another person's canonical_name in the same row. Catches TCAD field-
+    width truncations like 'Melissa Greenwoo Morrow' vs 'Melissa Greenwood
+    Morrow' appearing in the same row."""
+    if len(people) < 2:
+        return people
+    to_drop = set()
+    for i, p in enumerate(people):
+        if i in to_drop:
+            continue
+        for j, q in enumerate(people):
+            if i == j or j in to_drop:
+                continue
+            if _strict_prefix_match(p.canonical_name, q.canonical_name):
+                to_drop.add(i)
+                break
+    return [p for i, p in enumerate(people) if i not in to_drop]
 
 
 # --- Output ------------------------------------------------------------------
-
 
 def write_tier3(persons: list) -> None:
     data = []
@@ -222,9 +418,7 @@ def write_tier3(persons: list) -> None:
 
 
 def write_trusts(entity_owners: list) -> None:
-    data = []
-    for e in sorted(entity_owners, key=lambda x: x["owner_name"].casefold()):
-        data.append(e)
+    data = sorted(entity_owners, key=lambda x: x["owner_name"].casefold())
     header = (
         "# Tier 3 unresolved entities — TCAD owner strings that are trusts, LLCs,\n"
         "# corporations, churches, or other non-individual owners. Not written\n"
@@ -236,54 +430,24 @@ def write_trusts(entity_owners: list) -> None:
     )
 
 
-# --- Main --------------------------------------------------------------------
+# --- Ingest ------------------------------------------------------------------
 
-
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--write", action="store_true",
-                    help="Commit tier3_tcad.yml + tcad_unresolved_trusts.yml.")
-    args = ap.parse_args()
-
-    if not SRC_CSV.exists():
-        print(f"❌ Source CSV not found: {SRC_CSV}", file=sys.stderr)
-        return 1
-
-    DATA_DIR.mkdir(exist_ok=True)
-    shutil.copy2(SRC_CSV, LOCAL_CSV)
-    print(f"📥 Copied source to {LOCAL_CSV} ({LOCAL_CSV.stat().st_size // 1024} KB)")
-
-    with LOCAL_CSV.open(newline="", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
-    total = len(rows)
-
-    # --- Filter ---
-    def is_residential(r):
-        roll = (r.get("Roll Code") or "").strip().lower()
-        if roll != "residential":
-            return False
-        exem = (r.get("Exemptions") or "").strip().upper()
-        if exem.startswith("EX-"):
-            return False
-        return True
-
-    residential = [r for r in rows if is_residential(r)]
-
-    # --- Parse ---
-    individuals = {}  # canonical -> entry dict
-    entity_list = []  # dicts with owner_name + property_id
+def ingest(rows: list) -> tuple:
+    """Run the full ingest pipeline. Returns (individuals_dict, entity_list)."""
+    individuals = {}
+    entity_list = []
     entity_owner_seen = set()
-    suspicious_individuals = []  # individuals whose source contained entity tokens
 
-    for r in residential:
+    for r in rows:
         owner_name = (r.get("Owner Name") or "").strip()
-        owner_first = (r.get("Owner First Name") or "").strip()
+        ofn = (r.get("Owner First Name") or "").strip()
         prop_id = (r.get("Property ID") or "").strip()
 
         if not owner_name:
             continue
 
-        if is_entity(owner_name):
+        kind = classify_row(owner_name, ofn)
+        if kind == "entity":
             if owner_name not in entity_owner_seen:
                 entity_owner_seen.add(owner_name)
                 entity_list.append({
@@ -291,7 +455,7 @@ def main() -> int:
                 })
             continue
 
-        persons = parse_owner(owner_name, owner_first)
+        persons = parse_owner(owner_name, ofn, kind=kind)
         for p in persons:
             cname = p.canonical_name
             if not cname or not p.last:
@@ -306,61 +470,126 @@ def main() -> int:
                 "_source_owner_name": owner_name,
             }
 
-    # Verify skip logic: any individual whose source contained an entity token?
-    for cname, entry in individuals.items():
-        src = entry.get("_source_owner_name", "").upper()
-        toks = set(re.findall(r"\b[A-Z][A-Z'&.]*\b", src))
-        leaked = toks & ENTITY_TOKENS
-        has_phrase = any(ph in src for ph in ENTITY_PHRASES)
-        if leaked or has_phrase:
-            suspicious_individuals.append({
-                "canonical_name": cname, "source": entry["_source_owner_name"],
-                "leaked_tokens": sorted(leaked), "has_phrase": has_phrase,
-            })
+    return individuals, entity_list
 
-    # --- Stats ---
-    print(f"\n📊 Statistics")
+
+def is_residential(r: dict) -> bool:
+    roll = (r.get("Roll Code") or "").strip().lower()
+    if roll != "residential":
+        return False
+    exem = (r.get("Exemptions") or "").strip().upper()
+    if exem.startswith("EX-"):
+        return False
+    return True
+
+
+# --- Regression test ---------------------------------------------------------
+
+def run_tests() -> int:
+    """Run the fixture-based regression test. Returns 0 on pass, 1 on fail."""
+    if not TEST_FIXTURE.exists():
+        print(f"Fixture not found: {TEST_FIXTURE}", file=sys.stderr)
+        return 1
+    cases = yaml.safe_load(TEST_FIXTURE.read_text()) or []
+    passed = 0
+    failed = []
+    for c in cases:
+        pid = c["property_id"]
+        on = c["owner_name"]
+        ofn = c.get("owner_first_name", "") or ""
+        expected = c["expected"]
+
+        kind = classify_row(on, ofn)
+        if expected["kind"] == "entity":
+            if kind == "entity":
+                passed += 1
+            else:
+                failed.append((pid, on, ofn, "expected entity", f"got kind={kind}"))
+            continue
+
+        # Expected individuals
+        if kind == "entity":
+            failed.append((pid, on, ofn, f"expected individuals {expected['persons']}",
+                           "got kind=entity (full-row skip)"))
+            continue
+
+        persons = parse_owner(on, ofn, kind=kind)
+        got = [p.canonical_name for p in persons]
+        want = list(expected["persons"])
+        if sorted(got, key=str.casefold) == sorted(want, key=str.casefold):
+            passed += 1
+        else:
+            failed.append((pid, on, ofn, f"expected {want}", f"got {got}"))
+
+    total = len(cases)
+    print(f"TCAD parser regression: {passed}/{total} passed")
+    if failed:
+        print(f"\nFailures ({len(failed)}):")
+        for pid, on, ofn, want, got in failed:
+            print(f"  [{pid}] ON={on!r} OFN={ofn!r}")
+            print(f"         {want}")
+            print(f"         {got}")
+        return 1
+    return 0
+
+
+# --- Main --------------------------------------------------------------------
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--write", action="store_true",
+                    help="Commit tier3_tcad.yml + tcad_unresolved_trusts.yml.")
+    ap.add_argument("--test", action="store_true",
+                    help="Run fixture regression test (no network, no writes).")
+    args = ap.parse_args()
+
+    if args.test:
+        return run_tests()
+
+    if not SRC_CSV.exists():
+        print(f"Source CSV not found: {SRC_CSV}", file=sys.stderr)
+        return 1
+
+    DATA_DIR.mkdir(exist_ok=True)
+    shutil.copy2(SRC_CSV, LOCAL_CSV)
+    print(f"Copied source to {LOCAL_CSV} ({LOCAL_CSV.stat().st_size // 1024} KB)")
+
+    with LOCAL_CSV.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    total = len(rows)
+
+    residential = [r for r in rows if is_residential(r)]
+    individuals, entity_list = ingest(residential)
+
+    print(f"\nStatistics")
     print(f"   Total CSV rows: {total}")
     print(f"   Residential rows kept: {len(residential)}")
     print(f"   Entity owner strings skipped (unique): {len(entity_list)}")
     print(f"   Unique individuals parsed: {len(individuals)}")
-    print(f"   Trust-skip-leak violations: {len(suspicious_individuals)}")
 
-    # --- 20 samples (tricky cases first) ---
-    print(f"\n📋 Sample parsed individuals (first 20, showing tricky cases):")
-    samples = list(individuals.values())
-    # Pick a mix: multi-word first names, suffixes, hyphens
-    interesting = [
-        v for v in samples
-        if (len(v["first"].split()) >= 2
-            or "-" in v["first"] or "-" in v["last"]
-            or " III" in v["canonical_name"] or " II" in v["canonical_name"]
-            or " Jr" in v["canonical_name"] or " Sr" in v["canonical_name"])
-    ]
-    display = interesting[:10] + [v for v in samples if v not in interesting][:10]
-    for v in display[:20]:
-        print(f"   {v['canonical_name']:35} first={v['first']!r:20} last={v['last']!r:15} "
-              f"← source={v['_source_owner_name']!r}")
+    # Spot-check: any individual with an entity token in their source owner_name?
+    suspicious = []
+    for cname, entry in individuals.items():
+        src = entry.get("_source_owner_name", "").upper()
+        toks = _token_set(src)
+        leaked = toks & ENTITY_TOKENS
+        if leaked or any(ph in src for ph in ENTITY_PHRASES):
+            suspicious.append((cname, entry["_source_owner_name"], sorted(leaked)))
 
-    # --- Trust-skip-leak report (user asked for this explicitly) ---
-    print(f"\n🔍 Trust-skip-leak check (should be zero):")
-    if not suspicious_individuals:
-        print("   ✅ No individuals slipped past the entity filter.")
-    else:
-        print(f"   ⚠️  {len(suspicious_individuals)} individuals have entity tokens in source:")
-        for s in suspicious_individuals[:20]:
-            print(f"      {s['canonical_name']!r} ← {s['source']!r}  (leaked={s['leaked_tokens']})")
+    print(f"   Trust-skip-leak violations: {len(suspicious)}")
+    if suspicious:
+        print("   Samples:")
+        for cname, src, leaked in suspicious[:10]:
+            print(f"     {cname!r} ← {src!r}  (leaked={leaked})")
 
-    # --- Write ---
     if args.write:
         ROSTER_DIR.mkdir(parents=True, exist_ok=True)
-        # Strip internal _source_owner_name before writing
         clean = [{k: v for k, v in d.items() if not k.startswith("_")}
                  for d in individuals.values()]
         write_tier3(clean)
         write_trusts(entity_list)
-        print(f"\n✅ Wrote {TIER3_FILE}")
-        print(f"✅ Wrote {TRUSTS_FILE} ({len(entity_list)} entities)")
+        print(f"\nWrote {TIER3_FILE}")
+        print(f"Wrote {TRUSTS_FILE} ({len(entity_list)} entities)")
     else:
         print("\n(dry-run; pass --write to commit)")
     return 0

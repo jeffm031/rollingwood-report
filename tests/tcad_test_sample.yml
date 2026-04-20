@@ -1,0 +1,461 @@
+# TCAD parser regression test — 50 parcels random-sampled with seed 42 from
+# data/rollingwood_parcels.csv on 2026-04-20.
+#
+# Each entry records the raw CSV fields plus the expected parser output.
+# `kind: entity` means the row should be skipped (written to
+# tcad_unresolved_trusts.yml, not tier3_tcad.yml).
+# `kind: individuals` means the listed persons should be extracted to
+# tier3_tcad.yml.
+#
+# Labels produced by LLM reading the CSV; ambiguous cases are flagged with
+# an `ambiguous:` field explaining the alternative reading. Jeff can re-label
+# by editing this file and re-running the test.
+#
+# Label rules used:
+# - Trust/LLC/Management/etc. → entity.
+# - Joint-owner with 2+ tokens where last token is ≥4 letters (not a suffix)
+#   → last token is separate surname.
+# - Joint-owner where last token is 1-3 letters → middle initial, shared
+#   primary surname.
+# - OFN provides spouse or corrects truncation; takes precedence over
+#   same-person extraction from a truncated Owner Name.
+
+- property_id: "105468"
+  owner_name: "LEE EDWARD & CYNTHIA R"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Edward Lee"
+      - "Cynthia R Lee"
+
+- property_id: "105482"
+  owner_name: "SWAMINATHAN LIVING TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "LIVING TRUST phrase"
+
+- property_id: "105484"
+  owner_name: "CASTALDI FRANK J & KEE S"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Frank J Castaldi"
+      - "Kee S Castaldi"
+  reason: "Joint with shared surname; 'S' is 1-letter middle init"
+
+- property_id: "105486"
+  owner_name: "CHING PETER & LAURA SUGGS"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Peter Ching"
+      - "Laura Suggs"
+  reason: "Joint with distinct surname (Suggs, ≥4 letters)"
+  ambiguous: "Could also read as 'Laura Suggs Ching' if Suggs is maiden name"
+
+- property_id: "105488"
+  owner_name: "EREZ MATTAN & WARIYA"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Mattan Erez"
+      - "Wariya Erez"
+
+- property_id: "105507"
+  owner_name: "WEINBERGER ASHTON &"
+  owner_first_name: "ERICA WEINBERGER"
+  expected:
+    kind: individuals
+    persons:
+      - "Ashton Weinberger"
+      - "Erica Weinberger"
+  reason: "Trailing & signals spouse in OFN; OFN has shared surname"
+
+- property_id: "105553"
+  owner_name: "HOLLAND NADUNI D PETHIYAGODA"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Naduni D Pethiyagoda Holland"
+  reason: "Compound first+middle, surname Holland"
+  ambiguous: "Could be hyphenated 'Pethiyagoda-Holland'"
+
+- property_id: "105561"
+  owner_name: "KENDRICK ALLISON"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Allison Kendrick"
+
+- property_id: "105566"
+  owner_name: "BAGAN MEREDITH H"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Meredith H Bagan"
+
+- property_id: "105567"
+  owner_name: "EZELL JEFFREY G & BROOKE F"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Jeffrey G Ezell"
+      - "Brooke F Ezell"
+
+- property_id: "105571"
+  owner_name: "SAGE BRIGGS 2025 FAMILY TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "FAMILY TRUST phrase"
+
+- property_id: "105579"
+  owner_name: "LEVY MOISE L & JOAN L"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Moise L Levy"
+      - "Joan L Levy"
+
+- property_id: "105585"
+  owner_name: "BARTON STANCIL EUGENE JR &"
+  owner_first_name: "GWEN A BARTON"
+  expected:
+    kind: individuals
+    persons:
+      - "Stancil Eugene Barton Jr"
+      - "Gwen A Barton"
+  reason: "JR suffix on primary; spouse in OFN"
+
+- property_id: "105597"
+  owner_name: "HORNE MATTHEW W & ASHLEY A"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Matthew W Horne"
+      - "Ashley A Horne"
+
+- property_id: "105607"
+  owner_name: "STEIN DAVID A & LEIGH"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "David A Stein"
+      - "Leigh Stein"
+
+- property_id: "105691"
+  owner_name: "KASTURIRAMAN ANANTH & NITHYA MANI"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Ananth Kasturiraman"
+      - "Nithya Mani"
+  reason: "Last token MANI ≥4 letters → separate surname"
+  ambiguous: "Could be 'Nithya Mani Kasturiraman' (Mani as middle name, South Indian naming convention)"
+
+- property_id: "105698"
+  owner_name: "NICASTRO DAVID H & SUSAN C BAE"
+  owner_first_name: "SUSAN C BAER"
+  expected:
+    kind: individuals
+    persons:
+      - "David H Nicastro"
+      - "Susan C Baer"
+  reason: "Owner Name truncated BAE → BAER; OFN has full spelling and prefix-matches the joint owner"
+
+- property_id: "107309"
+  owner_name: "KAVANAGH CAROLYN REVOCABLE LIVING"
+  owner_first_name: "TRUST"
+  expected:
+    kind: entity
+  reason: "Concat has TRUST; owner_name has trust-adjacent REVOCABLE LIVING"
+
+- property_id: "107320"
+  owner_name: "SCHOOLFIELD REVOCABLE"
+  owner_first_name: "MANAGEMENT TRUST"
+  expected:
+    kind: entity
+  reason: "Concat has TRUST; owner_name has trust-adjacent REVOCABLE"
+
+- property_id: "107324"
+  owner_name: "JOHNSON KENNETH A & VICTORIA P"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Kenneth A Johnson"
+      - "Victoria P Johnson"
+
+- property_id: "107325"
+  owner_name: "KING ROBERT D & KAREN R"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Robert D King"
+      - "Karen R King"
+
+- property_id: "107328"
+  owner_name: "TSAI LISA S & TIMOTHY M NOTZON"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Lisa S Tsai"
+      - "Timothy M Notzon"
+  reason: "Timothy M Notzon — 3 tokens, last ≥4 → separate surname"
+
+- property_id: "107337"
+  owner_name: "SHAPIRO IKE R"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Ike R Shapiro"
+
+- property_id: "107347"
+  owner_name: "WONG MICHAEL Y & WENDY E WONG"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Michael Y Wong"
+      - "Wendy E Wong"
+  reason: "Explicit surname on joint; happens to match primary"
+
+- property_id: "107364"
+  owner_name: "MORRIS ELLEN BREAUX EXEMPT TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "TRUST token in owner_name"
+
+- property_id: "107378"
+  owner_name: "TROOP DAVID C"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "David C Troop"
+
+- property_id: "107381"
+  owner_name: "WHEELER PATRICK & EMILY"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Patrick Wheeler"
+      - "Emily Wheeler"
+
+- property_id: "107431"
+  owner_name: "RJS & KGS ICE MANAGEMENT TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "MANAGEMENT TRUST phrase / TRUST token"
+
+- property_id: "107435"
+  owner_name: "HASSO RONALD D TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "TRUST token"
+
+- property_id: "107438"
+  owner_name: "TONG JIE"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Jie Tong"
+
+- property_id: "107455"
+  owner_name: "THANNISCH MARK E & ADRIENNE W LIVING TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "LIVING TRUST phrase"
+
+- property_id: "107504"
+  owner_name: "SCHUH MARK"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Mark Schuh"
+
+- property_id: "107506"
+  owner_name: "1012 WOODLAND HOLDING TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "TRUST / HOLDING"
+
+- property_id: "107577"
+  owner_name: "KITOWSKI ROGER &"
+  owner_first_name: "NANNETTE HINCHLIFFE"
+  expected:
+    kind: individuals
+    persons:
+      - "Roger Kitowski"
+      - "Nannette Hinchliffe"
+  reason: "OFN has distinct surname"
+
+- property_id: "107579"
+  owner_name: "DUPONT CEDRIC & JENNIE S MORELAND"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Cedric Dupont"
+      - "Jennie S Moreland"
+  reason: "Joint with distinct surname"
+
+- property_id: "107605"
+  owner_name: "STANFORD RICHARD VAUGHAN"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Richard Vaughan Stanford"
+  ambiguous: "Could be hyphenated 'Stanford-Vaughan' or 'Richard Vaughan' with surname Stanford"
+
+- property_id: "107614"
+  owner_name: "BENNATT WILLIAM RHETT &"
+  owner_first_name: "ALISON NORTON BENNATT"
+  expected:
+    kind: individuals
+    persons:
+      - "William Rhett Bennatt"
+      - "Alison Norton Bennatt"
+
+- property_id: "107654"
+  owner_name: "MILLER SUSAN E & JONATHAN D"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Susan E Miller"
+      - "Jonathan D Miller"
+
+- property_id: "110548"
+  owner_name: "ELWELL STEPHEN & MEGHAN"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Stephen Elwell"
+      - "Meghan Elwell"
+
+- property_id: "110560"
+  owner_name: "MOORE PAUL B & CARLA G"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Paul B Moore"
+      - "Carla G Moore"
+
+- property_id: "110582"
+  owner_name: "SPEITEL MCKEE QPRT TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "TRUST / QPRT (Qualified Personal Residence Trust)"
+
+- property_id: "110589"
+  owner_name: "SPRINGER JULIE A & STEPHEN R S"
+  owner_first_name: "STEPHEN R SERFASS"
+  expected:
+    kind: individuals
+    persons:
+      - "Julie A Springer"
+      - "Stephen R Serfass"
+  reason: "Owner Name truncated 'STEPHEN R S' (should be SERFASS); OFN prefix-matches the joint owner and has full spelling"
+
+- property_id: "110752"
+  owner_name: "LOSOYA ART & ALAN F HENDRICKSON"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Art Losoya"
+      - "Alan F Hendrickson"
+  reason: "Joint with distinct surname"
+
+- property_id: "110762"
+  owner_name: "JAYAKUMAR VENKATESHWARA & SHAN"
+  owner_first_name: "& SHANTHERI"
+  expected:
+    kind: individuals
+    persons:
+      - "Venkateshwara Jayakumar"
+      - "Shantheri Jayakumar"
+  reason: "Owner Name truncated 'SHAN' (should be SHANTHERI per OFN continuation)"
+  ambiguous: "OFN starts with '&' — uncommon pattern; Shantheri may be a first name with a different surname entirely. Best-effort read."
+
+- property_id: "110770"
+  owner_name: "KIESTER KIRT H & MARY TUCKER"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Kirt H Kiester"
+      - "Mary Tucker"
+  reason: "Joint with distinct surname"
+
+- property_id: "110772"
+  owner_name: "GRAVES MICHAEL & STACEY GRIMMER"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Michael Graves"
+      - "Stacey Grimmer"
+  reason: "Joint with distinct surname"
+
+- property_id: "374536"
+  owner_name: "ROMNEY FAMILY LIVING TRUST"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "LIVING TRUST / FAMILY TRUST phrases"
+
+- property_id: "563677"
+  owner_name: "CAMPBELL TROYE C &"
+  owner_first_name: "SCOTT EUGENE CAMPBELL FAMILY TRST"
+  expected:
+    kind: individuals
+    persons:
+      - "Troye C Campbell"
+      - "Scott Eugene Campbell"
+  reason: "OFN is 'SCOTT EUGENE CAMPBELL FAMILY TRST' — FAMILY TRST is the entity tail, but SCOTT EUGENE CAMPBELL before it is extractable person data. Parser strips the entity tail and recovers Scott."
+
+- property_id: "865139"
+  owner_name: "TCAD TRAINING"
+  owner_first_name: ""
+  expected:
+    kind: entity
+  reason: "Placeholder / non-residential artifact in the export; should be skipped"
+
+- property_id: "978069"
+  owner_name: "MARTINSON KEITH & BARBARA"
+  owner_first_name: ""
+  expected:
+    kind: individuals
+    persons:
+      - "Keith Martinson"
+      - "Barbara Martinson"

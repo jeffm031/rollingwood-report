@@ -1,0 +1,61 @@
+# Adjacent-body sources for Tier 1 roster expansion.
+#
+# Scrapers read the `sources` list. Each entry drives one scraper invocation.
+# `pending_sources` is documentation-only — scope-tracked but not yet wired up;
+# scrapers skip it.
+#
+# Promotion rule: an entry cannot move from pending_sources to sources until
+# a scraper module matching its `scraper:` field exists. Promoting an entry
+# without the corresponding module produces a runtime error, not a useful
+# partial result. Verify both (a) the URL resolves and (b) scripts/scrape_<name>.py
+# exists before promoting.
+#
+# See design/tier1_expansion.md for scraper contract and field semantics.
+
+sources:
+  - name: "West Lake Hills (TML)"
+    scraper: tml
+    url: "https://directory.tml.org/profile/city/607"
+    jurisdiction: "West Lake Hills"
+    notes: "Mayor + 5 Council. TML city profile; standard format across TX cities."
+
+pending_sources:
+  - name: "Travis County Commissioners Court — Precinct 3"
+    scraper: travis_county   # module TBD
+    url: null                 # TBD — traviscountytx.gov commissioner page
+    jurisdiction: "Travis County"
+    notes: >
+      County Judge + Precinct 3 commissioner (precinct covering Rollingwood).
+      Need to confirm Pct 3 is the right precinct before activation.
+
+  - name: "CTRMA Board of Directors"
+    scraper: ctrma            # module TBD
+    url: null                 # TBD — mobilityauthority.com board page
+    jurisdiction: "CTRMA"
+    notes: >
+      Board + executive director (e.g., James Bass). Relevant for MOPAC South
+      and regional mobility items at Rollingwood meetings.
+
+  - name: "Austin City Council — District 8"
+    scraper: austin           # module TBD
+    url: null                 # TBD — austintexas.gov member page for D8
+    jurisdiction: "Austin"
+    notes: >
+      D8 covers Rollingwood. Confirmed 2026-04-20: Paige Ellis is current D8 CM;
+      reaching two-term limit and must petition for a third term to run in
+      November 2026. Monitor around that cycle — see design/tier1_expansion.md
+      Decision 6.
+    rendering_note: >
+      The jurisdiction: Austin label is technically correct but elides why
+      she's relevant (D8 covers Rollingwood). When jurisdiction is eventually
+      surfaced in the summary prompt (Decision 4, deferred), this entry will
+      likely need district-aware rendering, not just city name. Distinct from
+      WLH where the city name alone is sufficient context.
+
+  # State representatives (TX House + Senate) deliberately deferred per
+  # design/tier1_expansion.md "Deferred to future sessions." Not listed here
+  # yet — add as pending_sources entries when the adjacent-body set has
+  # stabilized.
+
+  # Eanes ISD is NOT a source. Rollingwood Report covers municipal meetings;
+  # the school district is out of scope by design. Do not add.

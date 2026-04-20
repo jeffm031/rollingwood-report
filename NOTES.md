@@ -22,6 +22,23 @@ roster entry existed to override it.
   prevents this failure class from recurring with every adjacent-body
   official who speaks at a Rollingwood meeting.
 
+### Fix Tier 2 "Thom Farrell" canonical entry
+
+Confirmed authoritative spelling is **Thom** (Jeff direct confirmation +
+rollingwoodtx.gov Spirit of Rollingwood Citizenship Awards page +
+Community Impact retirement coverage). Tier 2's `tier2_historical.yml`
+currently stores this as "Tom," which means today's 2026-04-14 summary
+(and any prior summary referencing him) misspelled a four-term former
+mayor's name.
+
+**Fix:** audit `scripts/scrape_tier2.py` parsing logic, and check whether
+the source minutes themselves contain the error. Regenerate Tier 2. If
+the misspelling appears in the source minutes, the scraper needs a
+name-correction pass step analogous to Tier 4.
+
+**Priority:** same as Tier 1 expansion. Both affect named public
+officials and both are "active incorrect data in the roster" bugs.
+
 ### Drop redundant YOUTUBE URL field from run.py user_content now that VIDEO ID is explicit
 
 ### Memory hygiene audit
@@ -80,6 +97,91 @@ cause false positives against other names.
 officials), but should be fixed **before a wider subscriber launch** —
 Tier 3 will matter more once reports go to residents who expect to see
 their neighbors' names rendered correctly.
+
+### Centralize SURNAME_OVERRIDES across scrapers
+
+`SURNAME_OVERRIDES` — the manual first/last override map for names where
+the last-word-is-surname heuristic fails — is currently duplicated in
+`scripts/scrape_tier1.py` and `scripts/scrape_tml.py`. Same problem affects
+every scraper, since they all confront the same class of multi-word-surname
+edge case (Van Bavel, De Los Santos, O'Brien, etc.).
+
+Not urgent. Premature abstraction is worse than mild duplication, and we
+have only two scrapers today. Extract to a shared `scripts/name_utils.py`
+when the third scraper is added (Travis County, CTRMA, or Austin). The
+warning-log instrumentation in `scrape_tml.py` (`name_split_looks_suspicious`)
+should move into the shared module at that point. Same thinking applies to
+`read_roster`/`write_roster`, which are also duplicated.
+
+### Per-source error isolation in multi-source scraper runs
+
+When the scheduled refresh workflow is added, wrap each source fetch +
+parse + upsert in try/except so an individual source failure (404,
+timeout, malformed HTML) doesn't abort the whole run. Log failures as
+warnings and continue with remaining sources. The PR-opening action
+should surface the failures in the PR description so they're visible in
+review without the operator having to read the workflow logs.
+
+Today only one adjacent-body source is active (`West Lake Hills (TML)`),
+so this doesn't matter yet — a failure there is the whole run anyway.
+
+### scrape_tml.py dry-run output should surface the credentials field
+
+The scraper's dry-run NEW-entries block prints `canonical_name`, `role`,
+and `jurisdiction` but not `credentials`. When `credentials` is non-empty
+(e.g., Trey Fletcher → `"AICP, ICMA-CM"`, Jennifer Bills → `"AICP, LEED AP"`),
+the operator has no way to eyeball what would land in YAML without
+separately calling `build_entry` on the parsed `ScrapedPerson`. The
+2026-04-20 West Lake Hills dry-run required exactly this workaround.
+
+Low priority. Fix by appending `credentials={p.credentials!r}` to the
+NEW-entry log line in `upsert()` when non-empty, or by printing the full
+`build_entry` dict in a `--verbose` mode.
+
+### Council Data Project schema reference (generalization phase)
+
+When generalizing for other towns (phase 8+), review Council Data Project's
+ingestion model at https://councildataproject.org/cdp-backend/ingestion_models.html
+for schema inspiration. Their Event / Session / Body / Matter / Person /
+Seat / Role / Vote modeling is well-designed and battle-tested on ~10 cities.
+
+**Do not adopt their stack.** CDP is GCP-heavy, last released June 2023,
+and org signals point to unmaintained instances getting archived.
+Product shape is also wrong for us — CDP is a searchable meeting database;
+the Rollingwood Report is an automated prose newsletter. The data *model*
+is the part worth borrowing; the infrastructure and product are not.
+
+### citymeetings.nyc — contact for cross-city expansion
+
+Vikram Oberoi runs citymeetings.nyc — the closest existing product to this
+project. One-person operation, AI + human oversight, ~10k monthly visitors,
+NYC-scale. He has publicly offered collaboration for cross-city deployment:
+*"If you live elsewhere and would like to bring citymeetings.nyc-like
+coverage to your area, email me."*
+
+Worth reaching out once the Rollingwood Report is in beta and we have
+something concrete to show. Not urgent — premature contact with nothing
+to demo is worse than no contact.
+
+## Observations
+
+### Transcription is non-deterministic across runs
+
+On the same audio (4/14/2026 Special City Council, video `ecUUdeLa5_A`),
+AssemblyAI's `universal-3-pro` produced materially different name
+renderings on consecutive days:
+
+- 2026-04-18 spike: "Fong" (for Vaughan), "Masko" (for Massingill)
+- 2026-04-20 re-run: "Vaughn" (for Vaughan), "Mascow" (for Massingill)
+
+**Implication for roster design.** We can't rely on having seen a
+specific phonetic error before in order to catch it. The roster has to
+be comprehensive enough in canonical names that whatever the
+transcriber happens to produce on a given run, the canonical spelling
+is available for the phonetic/fuzzy match to land on. This reinforces
+the breadth-first rationale for Tier 1 adjacent-body expansion: it's
+not about enumerating known transcriber errors, it's about covering
+everyone who might be named.
 
 ## Open design questions
 

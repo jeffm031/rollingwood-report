@@ -1,0 +1,30 @@
+# Tier 4 — Names learned from past meeting summaries (not yet in Tiers 1–3).
+# Populated by manual addition after a published report has been reviewed
+# against the source video. See CLAUDE.md ("Names to Verify / Tier 4 feedback")
+# for the standing rule.
+#
+# Schema:
+#   - canonical_name: "Jane Doe"
+#     first: Jane
+#     last: Doe
+#     aliases: []
+#     role: "resident"
+#     source: tier4
+#     confidence: confirmed  (or "learned" if lower confidence)
+
+- canonical_name: Rachel Tys
+  first: Rachel
+  last: Tys
+  aliases:
+    - Rachel Tice
+  role: Co-author of permeable parking solutions handout (referenced 2026-04-15 Council)
+  source: tier4
+  confidence: confirmed
+
+- canonical_name: Jay Weintraub
+  first: Jay
+  last: Weintraub
+  aliases: []
+  role: President, Western Hills Little League
+  source: tier4
+  confidence: confirmed

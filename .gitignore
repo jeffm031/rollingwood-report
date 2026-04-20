@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets / credentials
+.env
+client_secret*.json
+token*.json
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Runtime state
+processed_meetings.json
+workdir/
+
+# Cached data / large binaries
+data/packet_cache/
+data/*.csv
+*.mp3
+*.mp4
+*.wav
+*.m4a

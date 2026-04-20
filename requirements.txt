@@ -1,0 +1,14 @@
+anthropic>=0.40.0
+assemblyai>=0.61.0
+python-dotenv>=1.0.0
+markdown>=3.10
+weasyprint>=68.0
+yt-dlp>=2024.10.0
+google-auth>=2.34.0
+google-auth-oauthlib>=1.2.0
+google-api-python-client>=2.150.0
+PyYAML>=6.0
+metaphone>=0.6
+rapidfuzz>=3.6
+beautifulsoup4>=4.12
+requests>=2.31

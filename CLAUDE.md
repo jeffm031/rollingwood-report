@@ -30,7 +30,7 @@ for all current Rollingwood officials — mayor, council, city staff, and (via t
 - **Tier 3 (likely_resident):** TCAD parcel owners from
   `~/Developer/tcad-property-roll/rollingwood_parcels.csv` — build via
   `scripts/ingest_tcad.py`.
-- **Tier 4 (confirmed / learned):** accumulated from reviewed past summaries.
+- **Tier 4 (learned):** accumulated from reviewed past summaries.
   See "Names to Verify" rule below.
 
 ### Names to Verify → Tier 4 feedback loop
@@ -41,7 +41,8 @@ any roster entry. After the user reviews that report against the source video
 and confirms a name's correct spelling, the confirmed entry should be added to
 `prompts/roster/tier4_learned.yml` with:
 - `source: tier4`
-- `confidence: confirmed` (or `learned` when less certain)
+- `confidence: learned`
+- `jurisdiction: Rollingwood`
 - `aliases: [<transcript variants that should resolve here>]`
 - `role:` a short phrase noting context (e.g., "President, Western Hills Little League")
 

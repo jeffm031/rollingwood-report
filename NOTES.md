@@ -37,6 +37,31 @@ canonical with "Tom" as alias. Seen in the 2026-04-21 Tier 2 migration
 regen. Prompt tuning issue (`prompts/summary_prompt.md`), not a roster
 issue. Low priority — log here if it recurs in published reports.
 
+### Tier 4 certainty-vs-provenance deferred (low priority)
+
+The 2026-04-21 Tier 4 migration collapsed `confidence: confirmed | learned`
+(a within-tier data-quality signal) into `confidence: learned` (a
+provenance category per the design-doc enum). Both existing Tier 4 entries
+were `confirmed` at migration time; no information was lost because the
+signal was inert in downstream code — `scripts/roster.py` doesn't branch
+on Tier 4 confidence, and nothing else reads it.
+
+When the feedback-loop pipeline is built (depends on Gmail send pipeline
+existing first — the loop is "published report → operator confirms name
+→ entry lands in Tier 4"), revisit whether auto-added-by-correction
+entries need a lower-certainty flag distinct from their `learned`
+provenance.
+
+Options considered and deferred:
+- Add a `certainty: confirmed | learned` field to Tier 4 entries
+  (preserves the signal; adds schema that only Tier 4 uses).
+- Expand the design-doc enum with a `confirmed` value (breaks the
+  one-value-per-tier pattern).
+
+Pick the right shape once the feedback loop's actual requirements are
+visible. Deciding today would commit the schema before the requirements
+are clear.
+
 ### Prompt-tuning pass overdue for summary_prompt.md (medium priority)
 
 Two LLM-behavior observations from the 2026-04-21 session converge into

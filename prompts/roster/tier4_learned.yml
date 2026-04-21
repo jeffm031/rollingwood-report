@@ -3,14 +3,20 @@
 # against the source video. See CLAUDE.md ("Names to Verify / Tier 4 feedback")
 # for the standing rule.
 #
-# Schema:
+# Schema (confidence enum unified 2026-04-21 per design/tier1_expansion.md):
 #   - canonical_name: "Jane Doe"
 #     first: Jane
 #     last: Doe
 #     aliases: []
 #     role: "resident"
 #     source: tier4
-#     confidence: confirmed  (or "learned" if lower confidence)
+#     confidence: learned
+#     jurisdiction: Rollingwood
+#
+# The within-tier `confirmed` vs `learned` certainty signal that this file
+# used to carry has been collapsed into a single `learned` provenance
+# value. See NOTES.md "Tier 4 certainty-vs-provenance deferred" for the
+# context and the revisit trigger (feedback-loop pipeline session).
 
 - canonical_name: Rachel Tys
   first: Rachel
@@ -19,7 +25,8 @@
     - Rachel Tice
   role: Co-author of permeable parking solutions handout (referenced 2026-04-15 Council)
   source: tier4
-  confidence: confirmed
+  confidence: learned
+  jurisdiction: Rollingwood
 
 - canonical_name: Jay Weintraub
   first: Jay
@@ -27,4 +34,5 @@
   aliases: []
   role: President, Western Hills Little League
   source: tier4
-  confidence: confirmed
+  confidence: learned
+  jurisdiction: Rollingwood

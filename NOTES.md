@@ -22,22 +22,33 @@ roster entry existed to override it.
   prevents this failure class from recurring with every adjacent-body
   official who speaks at a Rollingwood meeting.
 
-### Fix Tier 2 "Thom Farrell" canonical entry
+### Thom Farrell canonical — RESOLVED 2026-04-20
 
-Confirmed authoritative spelling is **Thom** (Jeff direct confirmation +
-rollingwoodtx.gov Spirit of Rollingwood Citizenship Awards page +
-Community Impact retirement coverage). Tier 2's `tier2_historical.yml`
-currently stores this as "Tom," which means today's 2026-04-14 summary
-(and any prior summary referencing him) misspelled a four-term former
-mayor's name.
+Originally flagged as a Tier 2 misspelling. On 2026-04-21 review,
+discovered the fix already landed: Tier 1's `scrape_tier1.py` `ALIAS_MAP`
+was updated to canonicalize "Thom Farrell" with "Tom Farrell" as an
+alias (commit `38a3d54`). Tier 2's `tier2_historical.yml` currently has
+no Farrell entry at all — fuzzy lookup against Tier 1 dedupes any
+future historical-speaker hits. No further action on the roster.
 
-**Fix:** audit `scripts/scrape_tier2.py` parsing logic, and check whether
-the source minutes themselves contain the error. Regenerate Tier 2. If
-the misspelling appears in the source minutes, the scraper needs a
-name-correction pass step analogous to Tier 4.
+One related prompt-level observation that remains open: the LLM sometimes
+renders "Tom" in summary body text despite the roster listing "Thom" as
+canonical with "Tom" as alias. Seen in the 2026-04-21 Tier 2 migration
+regen. Prompt tuning issue (`prompts/summary_prompt.md`), not a roster
+issue. Low priority — log here if it recurs in published reports.
 
-**Priority:** same as Tier 1 expansion. Both affect named public
-officials and both are "active incorrect data in the roster" bugs.
+### Tier 2 per-entry packet URLs (low priority)
+
+After the 2026-04-21 schema migration, all Tier 2 entries carry
+`source_url: https://www.rollingwoodtx.gov/meetings` — a general
+reference, not the specific packet a speaker was discovered in. The
+scraper already tracks the meeting date per hit (see `_meta.first_seen`
+/ `_meta.last_seen`) but doesn't stash the packet URL itself. Next time
+`scripts/scrape_tier2.py` runs in full, update it to write the specific
+packet URL (or the most recent packet URL, if a speaker appears in
+multiple) as `source_url` instead of the general reference. Low
+priority — the general reference is adequate for the
+source-provenance use case today.
 
 ### Drop redundant YOUTUBE URL field from run.py user_content now that VIDEO ID is explicit
 

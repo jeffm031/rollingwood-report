@@ -37,6 +37,7 @@ class RosterEntry:
     role: str = ""
     source: str = ""
     confidence: str = ""
+    jurisdiction: str = ""
 
     def search_keys(self) -> list:
         keys = [self.canonical_name] + list(self.aliases)
@@ -65,6 +66,7 @@ def _load_file(path: Path, default_source: str) -> list:
                 role=(raw.get("role") or "").strip(),
                 source=(raw.get("source") or default_source).strip(),
                 confidence=(raw.get("confidence") or "").strip(),
+                jurisdiction=(raw.get("jurisdiction") or "").strip(),
             )
         )
     return entries
@@ -131,8 +133,23 @@ def lookup(name_from_transcript: str) -> Optional[str]:
     return None
 
 
+def _render_entry(e: RosterEntry) -> str:
+    suffix = f" — {e.role}" if e.role else ""
+    alias_str = f" (also: {', '.join(e.aliases)})" if e.aliases else ""
+    return f"- {e.canonical_name}{suffix}{alias_str}"
+
+
 def format_for_prompt() -> str:
-    """Render the full roster as a text block for the summary prompt."""
+    """Render the full roster as a text block for the summary prompt.
+
+    Tier 1 is grouped by `jurisdiction` into subsections so the LLM can
+    distinguish same-role officials across bodies (Rollingwood's Alun
+    Thomas vs. West Lake Hills' Trey Fletcher, both "City Administrator").
+    Rollingwood is rendered first; adjacent bodies follow alphabetically,
+    each tagged `(adjacent body)` in the subsection header. Tiers 2/3/4
+    stay flat (all implicitly Rollingwood until their own jurisdiction
+    migrations land).
+    """
     entries = _load_all()
     if not entries:
         return "# Rollingwood roster\n(Roster is empty — no entries loaded.)"
@@ -155,12 +172,26 @@ def format_for_prompt() -> str:
             continue
         lines.append("")
         lines.append(label)
-        for e in sorted(bucket, key=lambda x: x.canonical_name.casefold()):
-            suffix = f" — {e.role}" if e.role else ""
-            alias_str = (
-                f" (also: {', '.join(e.aliases)})" if e.aliases else ""
+        if tier == "tier1":
+            by_jur: dict = {}
+            for e in bucket:
+                jur = e.jurisdiction or "Rollingwood"
+                by_jur.setdefault(jur, []).append(e)
+            jurs = sorted(
+                by_jur.keys(),
+                key=lambda j: (0 if j == "Rollingwood" else 1, j.casefold()),
             )
-            lines.append(f"- {e.canonical_name}{suffix}{alias_str}")
+            for jur in jurs:
+                lines.append("")
+                if jur == "Rollingwood":
+                    lines.append(f"### {jur}")
+                else:
+                    lines.append(f"### {jur} (adjacent body)")
+                for e in sorted(by_jur[jur], key=lambda x: x.canonical_name.casefold()):
+                    lines.append(_render_entry(e))
+        else:
+            for e in sorted(bucket, key=lambda x: x.canonical_name.casefold()):
+                lines.append(_render_entry(e))
     return "\n".join(lines)
 
 

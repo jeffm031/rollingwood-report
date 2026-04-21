@@ -62,6 +62,48 @@ Pick the right shape once the feedback loop's actual requirements are
 visible. Deciding today would commit the schema before the requirements
 are clear.
 
+### Move OAuth consent screen from Testing to Production before beta launch (medium priority)
+
+**Discovered 2026-04-21** during the first `scripts/send_preview.py --send`
+attempt (Chunk C). The Gmail API refresh call returned `invalid_grant:
+Token has been expired or revoked` four days after `token_newsletter.json`
+was bootstrapped (2026-04-17 → 2026-04-21). Bootstrap had to be re-run
+to complete the send test.
+
+**Root cause.** The newsletter GCP project's OAuth consent screen is in
+**Testing** mode. Testing-mode refresh tokens are invalidated after
+~7 days of issuance (in practice sometimes sooner, as observed here at
+day 4). This is fine for early development but will bite the production
+pipeline — the GHA cron runs on an hourly-ish schedule; an expired
+refresh token means the job silently fails to send summaries until
+someone re-bootstraps the token locally.
+
+**Structural fix.** In Google Cloud Console → APIs & Services → OAuth
+consent screen, move the newsletter project's consent screen from
+**Testing** to **In production**. This requires completing the App
+verification step for the scopes in use. For reference, current scopes
+(from `scripts/bootstrap_google_auth_newsletter.py`):
+
+- `gmail.send` — restricted scope (not sensitive per Google's
+  classification); verification usually light-touch
+- `gmail.readonly` — restricted scope, same
+- `gmail.labels`, `gmail.modify` — restricted
+- `drive.file` — app-created files only, non-sensitive
+- `spreadsheets.readonly` — non-sensitive
+
+Restricted scopes may need a brief security assessment; the usual
+turnaround is a few days to a couple of weeks.
+
+**Blocker relationship.** Must land **before beta launch.** A production
+pipeline that silently dies on a 7-day refresh-token expiry is not a
+production pipeline. Token refresh has to "just work" indefinitely once
+the GHA cron is the only thing hitting the API.
+
+**Priority: medium.** Doesn't block the feedback-loop or prompt-tuning
+work Claude Code can do locally, but is a hard prerequisite for the
+beta-cron actually running. Should land in the same phase as the Gmail
+feedback-loop wiring.
+
 ### Prompt-tuning pass overdue for summary_prompt.md (medium priority)
 
 Two LLM-behavior observations from the 2026-04-21 session converge into

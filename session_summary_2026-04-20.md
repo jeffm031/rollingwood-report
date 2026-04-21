@@ -82,9 +82,10 @@ Candidates (ordered by priority):
    touch `format_for_prompt()`.
 
 Session artifacts landed today: `session_summary_2026-04-20.md` and
-`SESSION_HYGIENE.md` (this file). `/tmp/name_triage_2026-04-20.md` is
-unpromoted — decide next session whether to move it into the repo or
-let it stay scratch.
+`SESSION_HYGIENE.md` (this file). `/tmp/name_triage_2026-04-20.md` was
+promoted to `sessions/2026-04-20_name_triage.md` on 2026-04-21 (commit
+`4eebe50`), establishing `sessions/` as the directory for future dated
+session artifacts.
 
 ## Process notes
 

@@ -31,6 +31,15 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 
+# Tier 2 schema constants (migrated 2026-04-21 per design/tier1_expansion.md).
+# All Tier 2 entries carry confidence=historical_speaker uniformly; prior
+# sub-categories (non_resident, former_council, former_staff) are compressed
+# per the design doc's enum. source_url is a general reference for now —
+# see NOTES.md for the per-entry packet URL gap.
+TIER2_CONFIDENCE = "historical_speaker"
+TIER2_JURISDICTION = "Rollingwood"
+TIER2_SOURCE_URL = "https://www.rollingwoodtx.gov/meetings"
+
 import requests
 import yaml
 from bs4 import BeautifulSoup
@@ -601,18 +610,14 @@ def classify(cands: dict) -> dict:
         b_count = sum(1 for _, p, _ in c.sources if p == "B")
         source_dates = sorted({str(d) for d, _, _ in c.sources})
 
-        # Confidence precedence: former_staff > former_council > non_resident > confirmed
+        # Per the 2026-04-21 schema migration, all Tier 2 entries carry
+        # confidence=historical_speaker uniformly. Former-staff / former-
+        # council distinctions are preserved in the `role` field.
         if name in FORMER_STAFF:
-            confidence = "former_staff"
             role = FORMER_STAFF[name]
         elif name in FORMER_COUNCIL:
-            confidence = "former_council"
             role = FORMER_COUNCIL[name]
-        elif non_res:
-            confidence = "non_resident"
-            role = ""
         else:
-            confidence = "confirmed"
             role = ""
 
         tier2_entries.append({
@@ -622,7 +627,10 @@ def classify(cands: dict) -> dict:
             "aliases": sorted(t2_internal_aliases.get(name, set())),
             "role": role,
             "source": "tier2",
-            "confidence": confidence,
+            "confidence": TIER2_CONFIDENCE,
+            "jurisdiction": TIER2_JURISDICTION,
+            "source_url": TIER2_SOURCE_URL,
+            "scraped_at": date.today().isoformat(),
             "_meta": {
                 "address_hits": a_count,
                 "verb_hits": b_count,
@@ -630,10 +638,12 @@ def classify(cands: dict) -> dict:
                 "first_seen": source_dates[0],
                 "last_seen": source_dates[-1],
                 "addresses_seen": sorted(c.addresses_seen)[:3],
+                "non_resident_signal": non_res,
             },
         })
 
     # Seed former-officials that didn't appear in auto-discovery.
+    today_iso = date.today().isoformat()
     discovered = {e["canonical_name"] for e in tier2_entries}
     for name, role in FORMER_COUNCIL.items():
         if name not in discovered:
@@ -641,7 +651,10 @@ def classify(cands: dict) -> dict:
             tier2_entries.append({
                 "canonical_name": name, "first": first, "last": last,
                 "aliases": [], "role": role, "source": "tier2",
-                "confidence": "former_council",
+                "confidence": TIER2_CONFIDENCE,
+                "jurisdiction": TIER2_JURISDICTION,
+                "source_url": TIER2_SOURCE_URL,
+                "scraped_at": today_iso,
                 "_meta": {"address_hits": 0, "verb_hits": 0, "appearances": 0,
                           "first_seen": "", "last_seen": "",
                           "addresses_seen": [], "seed_only": True},
@@ -652,7 +665,10 @@ def classify(cands: dict) -> dict:
             tier2_entries.append({
                 "canonical_name": name, "first": first, "last": last,
                 "aliases": [], "role": role, "source": "tier2",
-                "confidence": "former_staff",
+                "confidence": TIER2_CONFIDENCE,
+                "jurisdiction": TIER2_JURISDICTION,
+                "source_url": TIER2_SOURCE_URL,
+                "scraped_at": today_iso,
                 "_meta": {"address_hits": 0, "verb_hits": 0, "appearances": 0,
                           "first_seen": "", "last_seen": "",
                           "addresses_seen": [], "seed_only": True},

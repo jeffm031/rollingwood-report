@@ -9,77 +9,110 @@
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Alec Robinson
   first: Alec
   last: Robinson
   aliases: []
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Alex Robinette
   first: Alex
   last: Robinette
   aliases: []
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Andrew Van Winkle
   first: Andrew Van
   last: Winkle
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Aparna Goyal
   first: Aparna
   last: Goyal
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Ashley Wayman
   first: Ashley
   last: Wayman
   aliases: []
   role: former City Administrator
   source: tier2
-  confidence: former_staff
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Brian Nash
   first: Brian
   last: Nash
   aliases: []
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Bryce Cox
   first: Bryce
   last: Cox
   aliases: []
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Buck Shapiro
   first: Buck
   last: Shapiro
   aliases: []
   role: former Council Member
   source: tier2
-  confidence: former_council
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Catherine Horne
   first: Catherine
   last: Horne
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Chad Smith
   first: Chad
   last: Smith
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Charles Zech
   first: Charles
   last: Zech
@@ -87,70 +120,100 @@
   - Charlie Zech
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Christine Whitney
   first: Christine
   last: Whitney
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Christopher Bray
   first: Christopher
   last: Bray
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Curt Arnett
   first: Curt
   last: Arnett
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: David Wilson
   first: David
   last: Wilson
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Debbie Arnow
   first: Debbie
   last: Arnow
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Desiree Adair
   first: Desiree
   last: Adair
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Don Hudson
   first: Don
   last: Hudson
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Emily Doran
   first: Emily
   last: Doran
   aliases: []
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Gene Feit
   first: Gene
   last: Feit
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Glenn Harris
   first: Glenn
   last: Harris
@@ -158,77 +221,110 @@
   - Glen Harris
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Greg Blackburn
   first: Greg
   last: Blackburn
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: James Gilley
   first: James
   last: Gilley
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Jay Howard
   first: Jay
   last: Howard
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Jay Kennedy
   first: Jay
   last: Kennedy
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Jeff Ezell
   first: Jeff
   last: Ezell
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Jeff Marx
   first: Jeff
   last: Marx
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Kelly Saunders
   first: Kelly
   last: Saunders
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Kendra Roloson
   first: Kendra
   last: Roloson
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Makayla Rodriguez
   first: Makayla
   last: Rodriguez
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Michelle Ray
   first: Michelle
   last: Ray
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Mike Rhodes
   first: Mike
   last: Rhodes
@@ -236,60 +332,87 @@
   - Michael Rhodes
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Robert Turner
   first: Robert
   last: Turner
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Ryan Brewer
   first: Ryan
   last: Brewer
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Sam Alamo
   first: Sam
   last: Alamo
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Sandy Keller
   first: Sandy
   last: Keller
   aliases: []
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Shanthi Jayakumar
   first: Shanthi
   last: Jayakumar
   aliases: []
   role: ''
   source: tier2
-  confidence: non_resident
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Steve Franke
   first: Steve
   last: Franke
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Wendi Hundley
   first: Wendi
   last: Hundley
   aliases: []
   role: former Council Member
   source: tier2
-  confidence: former_council
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'
 - canonical_name: Zach Elkins
   first: Zach
   last: Elkins
   aliases: []
   role: ''
   source: tier2
-  confidence: confirmed
+  confidence: historical_speaker
+  jurisdiction: Rollingwood
+  source_url: https://www.rollingwoodtx.gov/meetings
+  scraped_at: '2026-04-17'

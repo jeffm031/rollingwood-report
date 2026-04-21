@@ -37,6 +37,31 @@ canonical with "Tom" as alias. Seen in the 2026-04-21 Tier 2 migration
 regen. Prompt tuning issue (`prompts/summary_prompt.md`), not a roster
 issue. Low priority — log here if it recurs in published reports.
 
+### Prompt-tuning pass overdue for summary_prompt.md (medium priority)
+
+Two LLM-behavior observations from the 2026-04-21 session converge into
+a signal that `prompts/summary_prompt.md` has drifted between roster
+intent and LLM output:
+
+1. After jurisdiction-surfacing landed (commit `a942e03`), the
+   Names-to-Verify section expanded to include roster-matched names
+   with inline citations rather than only truly unresolved names.
+   Defensible as more-transparent sourcing, but the section's original
+   semantic shifted.
+2. After Tier 2 migration (commit `96adf6d`), the LLM rendered "Tom
+   Farrell" in body text despite Tier 1's roster listing "Thom" as
+   canonical with "Tom" as alias. Canonical-vs-alias handling is soft.
+
+Individually tolerable; together a signal the summary prompt needs a
+focused tuning pass. Scope: review how the prompt instructs the LLM to
+use roster entries, tighten canonical-vs-alias handling, and clarify
+Names-to-Verify semantics (strict unresolved-only vs. annotated
+roster citations).
+
+**Priority: medium.** Shouldn't block Tier 4 enum migration or Gmail
+send pipeline work, but should land before the first published beta
+issue — these are the kinds of artifacts subscribers will notice.
+
 ### Tier 2 per-entry packet URLs (low priority)
 
 After the 2026-04-21 schema migration, all Tier 2 entries carry

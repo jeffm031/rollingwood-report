@@ -104,30 +104,47 @@ work Claude Code can do locally, but is a hard prerequisite for the
 beta-cron actually running. Should land in the same phase as the Gmail
 feedback-loop wiring.
 
-### Prompt-tuning pass overdue for summary_prompt.md (medium priority)
+### Prompt-tuning pass overdue for summary_prompt.md (HIGH priority — beta-launch blocker)
 
-Two LLM-behavior observations from the 2026-04-21 session converge into
-a signal that `prompts/summary_prompt.md` has drifted between roster
-intent and LLM output:
+Upgraded from medium to **HIGH / beta-launch blocker** on 2026-04-22
+after the timestamp-citation audit. See
+`sessions/2026-04-22_timestamp_audit.md` for the evidence.
 
-1. After jurisdiction-surfacing landed (commit `a942e03`), the
-   Names-to-Verify section expanded to include roster-matched names
-   with inline citations rather than only truly unresolved names.
-   Defensible as more-transparent sourcing, but the section's original
-   semantic shifted.
-2. After Tier 2 migration (commit `96adf6d`), the LLM rendered "Tom
-   Farrell" in body text despite Tier 1's roster listing "Thom" as
-   canonical with "Tom" as alias. Canonical-vs-alias handling is soft.
+Three LLM-behavior observations have accumulated into the same prompt-
+tuning backlog:
 
-Individually tolerable; together a signal the summary prompt needs a
-focused tuning pass. Scope: review how the prompt instructs the LLM to
-use roster entries, tighten canonical-vs-alias handling, and clarify
-Names-to-Verify semantics (strict unresolved-only vs. annotated
-roster citations).
+1. **Timestamp-citation misalignment** (discovered 2026-04-22 via the
+   first real-send preview email; audited in
+   `sessions/2026-04-22_timestamp_audit.md`). The LLM applies section-
+   anchor citation rather than claim-anchor citation — one real
+   timestamp gets reused across multiple distinct claims, some made
+   by different speakers at different moments. Beta-launch blocker
+   because the "hyperlinked verifiable citations" value proposition
+   collapses if citations don't resolve to their claims.
+2. **Names-to-Verify semantic drift** (observed 2026-04-21 after
+   jurisdiction-surfacing `a942e03`). The section expanded to include
+   roster-matched names with inline citations rather than only
+   truly unresolved names. Defensible as more-transparent sourcing
+   but the section's original semantic shifted.
+3. **Canonical-vs-alias handling is soft** (observed 2026-04-21 after
+   Tier 2 migration `96adf6d`). The LLM rendered "Tom Farrell" in
+   body text despite Tier 1's roster listing "Thom" as canonical
+   with "Tom" as alias.
 
-**Priority: medium.** Shouldn't block Tier 4 enum migration or Gmail
-send pipeline work, but should land before the first published beta
-issue — these are the kinds of artifacts subscribers will notice.
+Scope for the tuning session: timestamp-citation fix (claim-anchor,
+not section-anchor — see the 2026-04-22 audit for fix-shape
+requirement), Names-to-Verify semantic clarification (strict
+unresolved-only vs. annotated roster citations), canonical-vs-alias
+handling tightening. Review how the prompt instructs the LLM to use
+roster entries.
+
+Must preserve (don't regress during tuning): date-error self-
+correction, roster-based name canonicalization, transcript-vs-
+extrapolation distinction in the Transcript Notes appendix.
+
+**Priority: HIGH / beta-launch blocker.** Timestamp accuracy is
+non-negotiable for the accountability model. No published beta issue
+ships until this lands.
 
 ### Tier 2 per-entry packet URLs (low priority)
 

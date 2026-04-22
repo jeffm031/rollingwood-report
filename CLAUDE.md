@@ -1,5 +1,18 @@
 # Rollingwood Report — Agent notes
 
+> **Fresh-session startup — read `SESSION_HYGIENE.md` first.** At the
+> start of any new Claude Code session in this repo, read
+> `SESSION_HYGIENE.md` in full before taking any action. It encodes the
+> operating-mode rules: what executes without asking, what requires an
+> explicit gate, how commits and pushes are handled. Skipping this step
+> has a documented failure-mode track record — 2026-04-21 produced four
+> cases where Claude Code routed git commits through Jeff for approval
+> despite the rule (in `SESSION_HYGIENE.md`) saying commits in this
+> project directory auto-approve. This callout lives in `CLAUDE.md`
+> rather than in `SESSION_HYGIENE.md` itself because `CLAUDE.md` is
+> auto-loaded at session start; the pointer has to be in the
+> auto-loaded file or it can't do its job.
+
 ## Standing rules
 
 ### Ground truth for names (Tier 1 roster)

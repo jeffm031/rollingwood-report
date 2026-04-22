@@ -187,31 +187,18 @@ recommended, especially for any assertions about Jeff's civic status,
 scope of project, or settled decisions. Stale memory is worse than no
 memory because it sounds authoritative.
 
-### Prompt-level jurisdiction surfacing — blocks clean Tier 1 resolution on ambiguous roles
+### Prompt-level jurisdiction surfacing — RESOLVED 2026-04-21
 
-The 2026-04-20 4/14 re-run after the TCAD fix demonstrated that when two
-jurisdictions both have an official with the same role (Rollingwood's
-Alun Thomas vs. West Lake Hills' Trey Fletcher, both "City Administrator"),
-the LLM flags one of them as unresolved rather than resolving to the
-canonical spelling.
-
-**Root cause.** `scripts/roster.py`'s `format_for_prompt()` renders each
-entry as `- {canonical_name} — {role} (also: {aliases})` with no
-jurisdiction. So the prompt sees two "City Administrator" entries with
-no city context, and the LLM does the honest thing and flags one as
-needing verification.
-
-Flagged in `design/tier1_expansion.md` as "Decision 4:
-jurisdiction-surfacing deferred." No longer deferrable in practice.
-
-**Fix.** Update `format_for_prompt()` to include jurisdiction in the
-rendered line, e.g., `- Trey Fletcher — City Administrator of West Lake
-Hills (adjacent body)`. Medium effort; should land before any further
-Tier 1 adjacent-body scrapers (otherwise the problem compounds across
-jurisdictions as Travis County, CTRMA, and Austin D8 come online).
-
-**Priority: high.** Blocks correctness of every summary that mentions
-a role shared across Rollingwood and an adjacent body.
+Originally flagged as HIGH / beta-blocker during the 2026-04-20 4/14
+re-run that showed Alun Thomas and Trey Fletcher both rendering as
+"City Administrator" without city context, causing the LLM to flag
+Fletcher as unresolved. Fix shipped the following morning: commit
+`a942e03` ("Surface jurisdiction in roster prompt; Tier 1 subsections")
+updated `scripts/roster.py`'s `format_for_prompt()` to group Tier 1
+entries into per-jurisdiction subsections (Rollingwood first, adjacent
+bodies tagged `(adjacent body)`). Verified on the 4/14 regen: Fletcher
+renders as "City Administrator of Westlake Hills" in body text.
+Closes Decision 4 in `design/tier1_expansion.md`.
 
 ### Fix tier3 TCAD ingester — name parsing bugs
 

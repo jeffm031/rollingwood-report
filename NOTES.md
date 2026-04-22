@@ -104,47 +104,62 @@ work Claude Code can do locally, but is a hard prerequisite for the
 beta-cron actually running. Should land in the same phase as the Gmail
 feedback-loop wiring.
 
-### Prompt-tuning pass overdue for summary_prompt.md (HIGH priority — beta-launch blocker)
+### Prompt-tuning followup (medium priority)
 
-Upgraded from medium to **HIGH / beta-launch blocker** on 2026-04-22
-after the timestamp-citation audit. See
-`sessions/2026-04-22_timestamp_audit.md` for the evidence.
+The 2026-04-22 evening prompt-tuning pass (commit `896bbef`) landed
+the primary beta-blocker fix and two partial secondary fixes. This
+entry captures what remains and replaces the prior HIGH / beta-
+launch-blocker entry now that the section-anchor citation bug —
+the actually-blocking observation — is resolved.
 
-Three LLM-behavior observations have accumulated into the same prompt-
-tuning backlog:
+**Fixed by the pass.** The section-anchor citation pattern (a single
+timestamp reused across multiple distinct claims from a single
+discussion segment, sometimes citing a later speaker's claim to an
+earlier speaker's turn) is resolved. Three of four audited citation
+errors corrected: Bunch's postpone request, Paige Ellis resolution,
+April 22 town hall all now cite Bunch's turn start at 1:25:48.
+Preserve-list items all held: date-error self-correction, roster
+canonicalization for Vaughan/Massingill/Pattillo/Hutson, Transcript-
+vs-extrapolation distinction.
 
-1. **Timestamp-citation misalignment** (discovered 2026-04-22 via the
-   first real-send preview email; audited in
-   `sessions/2026-04-22_timestamp_audit.md`). The LLM applies section-
-   anchor citation rather than claim-anchor citation — one real
-   timestamp gets reused across multiple distinct claims, some made
-   by different speakers at different moments. Beta-launch blocker
-   because the "hyperlinked verifiable citations" value proposition
-   collapses if citations don't resolve to their claims.
-2. **Names-to-Verify semantic drift** (observed 2026-04-21 after
-   jurisdiction-surfacing `a942e03`). The section expanded to include
-   roster-matched names with inline citations rather than only
-   truly unresolved names. Defensible as more-transparent sourcing
-   but the section's original semantic shifted.
-3. **Canonical-vs-alias handling is soft** (observed 2026-04-21 after
-   Tier 2 migration `96adf6d`). The LLM rendered "Tom Farrell" in
-   body text despite Tier 1's roster listing "Thom" as canonical
-   with "Tom" as alias.
+**Residual item 1: bare-factual-bullet citations.** The "no formal
+action / Council will reconvene" bullet still cites Vaughan's
+adjacent turn (0:55:14 "thank you for hosting") instead of
+Massingill's turn (0:55:20 "Tomorrow we're reposting"). Diagnosis:
+the new rule (a) is framed around "the speaker to whom the summary
+attributes the claim" — it doesn't bind on summary sentences without
+explicit speaker attribution. Needs a broader "citation must come
+from the turn where the cited fact was announced" framing that
+handles unattributed declarative claims.
 
-Scope for the tuning session: timestamp-citation fix (claim-anchor,
-not section-anchor — see the 2026-04-22 audit for fix-shape
-requirement), Names-to-Verify semantic clarification (strict
-unresolved-only vs. annotated roster citations), canonical-vs-alias
-handling tightening. Review how the prompt instructs the LLM to use
-roster entries.
+**Residual item 2: canonical-vs-alias not instruction-solvable.**
+The pass added a maximally strong directive ("the canonical form,
+not an alias form, is the only valid rendering in the summary body;
+aliases are for transcript recognition, not output use"). The regen
+still rendered "Tom Farrell" four times in body text. This suggests
+the mechanism isn't instruction-strength. Hypothesis: the model may
+be prioritizing transcript fidelity over roster fidelity when the
+transcript spells a name a particular way. Needs diagnosis before
+writing yet-more-insistent prompt text. Options to investigate
+(don't pick without diagnosis): re-render the roster with canonical
+names in a stronger position, add a post-processing canonicalization
+pass after the LLM call, or test whether explicit transcript-to-
+canonical substitution examples in the prompt change behavior.
 
-Must preserve (don't regress during tuning): date-error self-
-correction, roster-based name canonicalization, transcript-vs-
-extrapolation distinction in the Transcript Notes appendix.
+**Residual item 3: Fletcher-in-Names-to-Verify drift.** Fletcher
+still appears in the Names-to-Verify appendix with a "(resolved)"
+annotation despite the pass's explicit "MUST NOT appear here"
+directive for roster-matched names. Possibly the same underlying
+mechanism as residual item 2 — the LLM weighs transcript-context
+ambiguity over roster-match authority. If item 2's diagnosis
+produces a general solution, this drift likely resolves with it.
 
-**Priority: HIGH / beta-launch blocker.** Timestamp accuracy is
-non-negotiable for the accountability model. No published beta issue
-ships until this lands.
+**Priority: medium.** Not a beta-launch blocker — the primary
+section-anchor bug is fixed, and the residual items are narrower
+and arguably lower-severity. Residual item 2 (canonical-vs-alias)
+is probably the most subscriber-visible of the three. A stability
+check on a second meeting (via the production cron's next run)
+should happen alongside the followup investigation.
 
 ### Tier 2 per-entry packet URLs (low priority)
 

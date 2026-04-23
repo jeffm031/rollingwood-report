@@ -225,6 +225,45 @@ recommended, especially for any assertions about Jeff's civic status,
 scope of project, or settled decisions. Stale memory is worse than no
 memory because it sounds authoritative.
 
+### Project-knowledge hygiene (low priority)
+
+Sibling failure mode to the Memory hygiene audit above, on a different
+automated-context surface.
+
+**Discovered 2026-04-23** when a chunk briefed Claude Code to rewrite
+`methodology.md` and `editorial-policy.md`. The chunk's premise
+described specific stale content in those files (candidate-for-Council
+framing, "human review before every send" commitment, November 2026
+election timeline); the files did not exist in the repo and never had
+been committed. Investigation traced the mismatch to stale
+`methodology.md` and `editorial-policy.md` drafts sitting in the
+Claude Project's knowledge — silently loading into every new Claude
+conversation's context — carrying framing that predated the
+2026-04-18 project pivot (from candidate-for-Council to
+applicant-for-RCDC-and-Parks-Commission).
+
+**Action taken 2026-04-23.** Both stale drafts deleted from Project
+knowledge. Fresh Claude contexts no longer inherit the outdated
+current-state claims.
+
+**Standing practice going forward.** Review Project knowledge for
+staleness when the project takes substantial direction changes
+(shifts in Jeff's civic role, scope changes, product direction shifts),
+or roughly quarterly when no such event has occurred. Current-state
+docs (methodology, editorial policy, status/roadmap) are higher-risk
+for silent staleness because they make claims a reader would treat as
+authoritative; architectural and historical docs are lower-risk
+because they don't claim to describe present state. When a new
+foundational doc is written to the repo and added to Project knowledge,
+any older version must be replaced or removed, not supplemented —
+otherwise the context window carries both, and the LLM has no reliable
+way to know which is current.
+
+**Priority: low.** Pattern note, not a blocker. Today's instance was
+caught early (before content got drafted against the stale premise).
+The recurring risk is a new Claude Code context acting on false
+project-state assumptions without catching them.
+
 ### Prompt-level jurisdiction surfacing — RESOLVED 2026-04-21
 
 Originally flagged as HIGH / beta-blocker during the 2026-04-20 4/14

@@ -107,59 +107,97 @@ feedback-loop wiring.
 ### Prompt-tuning followup (medium priority)
 
 The 2026-04-22 evening prompt-tuning pass (commit `896bbef`) landed
-the primary beta-blocker fix and two partial secondary fixes. This
-entry captures what remains and replaces the prior HIGH / beta-
-launch-blocker entry now that the section-anchor citation bug —
-the actually-blocking observation — is resolved.
+the primary beta-blocker fix and identified three residual items.
+The 2026-04-23 followup resolved one measurably, likely-resolved
+another as defensive hardening, and surfaced a regression on the
+third that pushes it back to open with diagnostic evidence.
 
-**Fixed by the pass.** The section-anchor citation pattern (a single
+**Fixed by `896bbef`.** The section-anchor citation pattern (a single
 timestamp reused across multiple distinct claims from a single
-discussion segment, sometimes citing a later speaker's claim to an
-earlier speaker's turn) is resolved. Three of four audited citation
+discussion segment) is resolved. Three of four audited citation
 errors corrected: Bunch's postpone request, Paige Ellis resolution,
-April 22 town hall all now cite Bunch's turn start at 1:25:48.
-Preserve-list items all held: date-error self-correction, roster
-canonicalization for Vaughan/Massingill/Pattillo/Hutson, Transcript-
-vs-extrapolation distinction.
+April 22 town hall all cite Bunch's turn start at 1:25:48. Preserve-
+list items held: date-error self-correction, roster canonicalization,
+Transcript-vs-extrapolation distinction.
 
-**Residual item 1: bare-factual-bullet citations.** The "no formal
-action / Council will reconvene" bullet still cites Vaughan's
-adjacent turn (0:55:14 "thank you for hosting") instead of
-Massingill's turn (0:55:20 "Tomorrow we're reposting"). Diagnosis:
-the new rule (a) is framed around "the speaker to whom the summary
-attributes the claim" — it doesn't bind on summary sentences without
-explicit speaker attribution. Needs a broader "citation must come
-from the turn where the cited fact was announced" framing that
-handles unattributed declarative claims.
+**Residual item 2 (canonical-vs-alias) — RESOLVED by `2d97e76`
+(2026-04-23).** Added a concrete categorical example at line 81
+showing the transcript-to-canonical mapping ("if transcript says
+'Tom Farrell' ... body must say 'Thom Farrell' — never 'Tom
+Farrell'"). Reduced "Tom Farrell" body occurrences from 4 to 0
+across three regens (yesterday's investigation Test B, today's
+Fix 1 regen, today's Fix 2 regen). Pattern generalizes safely —
+categorical mapping shape.
 
-**Residual item 2: canonical-vs-alias not instruction-solvable.**
-The pass added a maximally strong directive ("the canonical form,
-not an alias form, is the only valid rendering in the summary body;
-aliases are for transcript recognition, not output use"). The regen
-still rendered "Tom Farrell" four times in body text. This suggests
-the mechanism isn't instruction-strength. Hypothesis: the model may
-be prioritizing transcript fidelity over roster fidelity when the
-transcript spells a name a particular way. Needs diagnosis before
-writing yet-more-insistent prompt text. Options to investigate
-(don't pick without diagnosis): re-render the roster with canonical
-names in a stronger position, add a post-processing canonicalization
-pass after the LLM call, or test whether explicit transcript-to-
-canonical substitution examples in the prompt change behavior.
+**Residual item 3 (Fletcher-in-Names-to-Verify drift) — likely
+resolved by `3f901f3` (2026-04-23), unverified.** Added a categorical
+example at lines 55–60 showing the boundary (Fletcher resolves under
+a jurisdiction subsection; MUST NOT appear in Names-to-Verify).
+Committed as defensive hardening rather than a measured fix:
+Fletcher was already absent from Names-to-Verify in today's post-Fix-1
+regen, so no before/after signal was available to measure. Example
+shape is categorical (same class as item 2's fix), so the fix is
+expected safe — but uncertainty is slightly elevated now that item
+1's attempt shows some example shapes induce new failure modes
+(see meta-observation below). Justification remains pattern-
+consistency with item 2's proven mechanism plus defensive hardening
+against non-deterministic regressions. Worth confirming with a
+second-meeting stability check when one runs.
 
-**Residual item 3: Fletcher-in-Names-to-Verify drift.** Fletcher
-still appears in the Names-to-Verify appendix with a "(resolved)"
-annotation despite the pass's explicit "MUST NOT appear here"
-directive for roster-matched names. Possibly the same underlying
-mechanism as residual item 2 — the LLM weighs transcript-context
-ambiguity over roster-match authority. If item 2's diagnosis
-produces a general solution, this drift likely resolves with it.
+**Residual item 1 (bare-factual-bullet citations) — STILL OPEN.**
+Attempted a fix on 2026-04-23 (uncommitted, reverted). The edit
+added a concrete specific-coordinate example to line 75's citation
+rule — showing that a bare declarative sentence like "Council will
+reconvene the following evening" must cite the announcer's turn
+(0:55:20, Massingill) not an adjacent turn (0:55:14, Vaughan). Primary
+target hit (Example 4 citation moved 0:55:14 → 0:55:20) but
+**regressed previously-correct Bunch citations**. Six Bunch-derived
+claims that had been correctly cited at 1:25:48 (Bunch's single turn
+start) regenerated with fabricated sub-turn timestamps: 1:28:00,
+1:30:00, 1:35:00, 1:38:00, 1:40:00, 1:41:00. Direct transcript
+verification: none of these exist as markers (`grep -c "^(1:28:00)"`
+etc. returns 0 for all six). The LLM fabricated sub-turn precision
+that the transcript doesn't encode, violating the prompt's own
+"read verbatim from the `(H:MM:SS)` marker" rule.
 
-**Priority: medium.** Not a beta-launch blocker — the primary
-section-anchor bug is fixed, and the residual items are narrower
-and arguably lower-severity. Residual item 2 (canonical-vs-alias)
-is probably the most subscriber-visible of the three. A stability
-check on a second meeting (via the production cron's next run)
-should happen alongside the followup investigation.
+Future fix needs diagnostic work on what example shape binds the
+bare-factual-bullet rule without teaching wrong-level precision.
+Don't re-attempt in the same session that discovered the regression —
+fresh context, diagnostic approach.
+
+**Meta-observation: example shape matters.** Yesterday's investigation
+(`sessions/2026-04-23_canonical_vs_alias_investigation.md`) found
+that concrete examples bind abstract rules where prose-only drifts.
+Today's Fix 3 regression refines that finding with a caveat:
+
+- **Categorical mapping examples** ("if transcript says X, output Y"
+  — Fix 1 and Fix 2's shape) generalize safely. They teach a pattern
+  that the LLM applies across cases without over-generalizing the
+  example's surface features.
+- **Specific-coordinate examples** ("cite 0:55:20 not 0:55:14" —
+  Fix 3's shape) risk teaching the wrong level of precision. The LLM
+  sees seconds-level discrimination modeled and infers that seconds-
+  level discrimination is always expected, even where the transcript
+  doesn't support it.
+
+Sample is small: two fixes using the categorical shape (Fix 1
+measured safe with 4 → 0 replication across three regens; Fix 2
+inferred safe, not measured) and one attempt using the specific-
+coordinate shape (Fix 3 measured unsafe). Future prompt-tuning should
+treat this as a working hypothesis to confirm with further evidence,
+not a settled rule.
+
+Future prompt-tuning work should start from this refined understanding:
+*concrete* does not mean "literal coordinates from the problem case" —
+*concrete* means "specific enough to show the pattern without
+overfitting to surface features of the example."
+
+**Priority: medium.** Downgrade from HIGH (pre-`896bbef`) remains
+justified — beta-blocker citation bug fixed, item 2 fully resolved,
+item 3 hardened-pending-verification, item 1's residual narrower
+than any originally-bundled observation. Subscriber-visibility of
+item 1 (one wrong citation timestamp on one declarative bullet) is
+lower than item 2's was (visibly misspelled name in body text).
 
 ### Tier 2 per-entry packet URLs (low priority)
 

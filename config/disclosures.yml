@@ -1,0 +1,46 @@
+# config/disclosures.yml — dynamic civic-status disclosures
+#
+# Source of truth for Jeff's current applications and appointments to
+# Rollingwood municipal bodies. Read by the pipeline at summary-
+# generation time and rendered as a standing block in every issue of
+# the Rollingwood Report.
+#
+# Scope: DYNAMIC civic-status only. Stable standing disclosures
+# (e.g., RW AI Lab affiliation) live in methodology.md inside marked
+# anchor comments and are read from there at render time. Do NOT
+# extend this file to hold stable content — the stable/dynamic
+# separation is the whole point of having two sources.
+#
+# Update cadence:
+#   - Whenever civic status changes (new application, appointment,
+#     term end, resignation).
+#   - Touch `last_reviewed` on every update AND on a quarterly audit
+#     even when nothing else changed. Staleness prevention — see
+#     NOTES.md "Project-knowledge hygiene" and "Memory hygiene audit"
+#     for the pattern we're guarding against.
+#
+# Fail-loud on malformed input (pipeline behavior contract):
+#   - File missing, unreadable, or YAML-unparseable: pipeline aborts.
+#   - methodology.md anchor pair not findable at render time:
+#     pipeline aborts.
+#   - Silent omission of the disclosure block is the worst failure
+#     mode; failed-send forces operator attention.
+#
+# See methodology.md for the conflicts-of-interest stance
+# (disclosure-not-recusal) and for the stable standing-disclosure
+# paragraph rendered alongside this file's content.
+
+last_reviewed: "2026-04-23"
+
+disclosures:
+  - role: "Applicant"
+    body: "Rollingwood Community Development Corporation"
+    body_short: "RCDC"
+    status: applicant
+    since: "2026-04-18"
+
+  - role: "Applicant"
+    body: "Rollingwood Parks Commission"
+    body_short: "Parks Commission"
+    status: applicant
+    since: "2026-04-18"

@@ -136,6 +136,10 @@ def download_audio(video_url: str, video_id: str) -> Path:
 def transcribe(audio_path: Path) -> str:
     """Return a speaker-labeled transcript."""
     aai.settings.api_key = ASSEMBLYAI_API_KEY
+    # A long meeting's completed-transcript JSON is multi-MB; the SDK default
+    # HTTP timeout is too short to fetch it and raises httpx.ReadTimeout
+    # mid-poll. 600 s leaves generous headroom.
+    aai.settings.http_timeout = 600
     config = aai.TranscriptionConfig(
         speaker_labels=True,
         punctuate=True,

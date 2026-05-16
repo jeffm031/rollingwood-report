@@ -46,6 +46,10 @@ def transcribe(audio_path: Path) -> str:
     print(f"🎙️  Transcribing {audio_path.name} with AssemblyAI...")
     print("    (this takes roughly real-time-÷-3, so a 2hr meeting ≈ 6-8 min)")
     aai.settings.api_key = os.environ["ASSEMBLYAI_API_KEY"]
+    # A long meeting's completed-transcript JSON is multi-MB; the SDK default
+    # HTTP timeout is too short to fetch it and raises httpx.ReadTimeout
+    # mid-poll. 600 s leaves generous headroom.
+    aai.settings.http_timeout = 600
     config = aai.TranscriptionConfig(
         speaker_labels=True,
         punctuate=True,

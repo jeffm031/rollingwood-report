@@ -8,9 +8,10 @@ Usage:
     python scripts/test_local.py "/Users/jeffmarx/Special City Council Meeting 4-14-2026 [ecUUdeLa5_A].mp4"
 
 Output:
-    - Transcript saved next to the MP4 as .transcript.txt
-    - Summary saved next to the MP4 as .summary.md
-    - Both printed to terminal
+    - Transcript saved next to the input as .transcript.txt (cached)
+    - Summary saved next to the input as .summary.md
+    - PDF saved as .summary.pdf — SKIPPED if Claude truncated the summary,
+      in which case the script exits with code 3 (EXIT_TRUNCATED)
 """
 
 import os
@@ -28,6 +29,10 @@ import roster as _roster
 
 PROMPT_FILE = Path(__file__).parent.parent / "prompts" / "summary_prompt.md"
 CLAUDE_MODEL = "claude-opus-4-7"
+
+# main() exit code when Claude truncated the summary (stop_reason == max_tokens).
+# Distinct from 1 (usage / file errors) so automation can detect truncation.
+EXIT_TRUNCATED = 3
 
 
 def _format_hms(ms: int) -> str:
@@ -61,7 +66,16 @@ def transcribe(audio_path: Path) -> str:
     return "\n\n".join(lines)
 
 
-def summarize(transcript: str, meeting_title: str, video_id: str = "") -> str:
+def summarize(
+    transcript: str, meeting_title: str, video_id: str = ""
+) -> tuple[str, str]:
+    """Summarize the transcript with Claude.
+
+    Returns ``(summary_text, stop_reason)``. A ``stop_reason`` of
+    ``"max_tokens"`` means Claude hit the output ceiling and the summary is
+    truncated; the caller decides what to do — ``main()`` writes the partial
+    ``.md`` for inspection but skips PDF export and exits ``EXIT_TRUNCATED``.
+    """
     print(f"🧠 Summarizing with Claude {CLAUDE_MODEL}...")
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     system_prompt = PROMPT_FILE.read_text() + "\n\n" + _roster.format_for_prompt()
@@ -79,11 +93,6 @@ def summarize(transcript: str, meeting_title: str, video_id: str = "") -> str:
         for _ in stream.text_stream:
             pass
         final = stream.get_final_message()
-    if final.stop_reason == "max_tokens":
-        print(
-            f"⚠️  Warning: Claude hit the max_tokens ceiling (32000); summary may be truncated.",
-            file=sys.stderr,
-        )
     summary = "".join(b.text for b in final.content if b.type == "text")
     # Safety net: the prompt asks Claude to substitute the VIDEO ID field for
     # the literal `VIDEO_ID` token in citation URLs. If it copies the token
@@ -91,7 +100,7 @@ def summarize(transcript: str, meeting_title: str, video_id: str = "") -> str:
     # deterministically here. A correct model run leaves nothing to replace.
     if video_id:
         summary = summary.replace("VIDEO_ID", video_id)
-    return summary
+    return summary, final.stop_reason
 
 
 def main():
@@ -129,8 +138,25 @@ def main():
             f"verifiable links.",
             file=sys.stderr,
         )
-    summary = summarize(transcript, meeting_title, video_id)
+    summary, stop_reason = summarize(transcript, meeting_title, video_id)
+    # Write the .md unconditionally — even a truncated summary should be
+    # inspectable so the operator can decide whether to keep it or re-run.
     summary_path.write_text(summary)
+    print(f"\n✅ Summary saved: {summary_path}")
+
+    if stop_reason == "max_tokens":
+        print(
+            "\n⚠️  TRUNCATED: Claude hit the max_tokens ceiling (32000); the "
+            "summary is incomplete.\n"
+            f"    The partial summary was written to {summary_path.name} for "
+            "inspection,\n"
+            "    but PDF export was SKIPPED so a truncated report is never "
+            "published.\n"
+            "    Re-run to retry — the cached transcript means AssemblyAI is "
+            "not re-charged.",
+            file=sys.stderr,
+        )
+        sys.exit(EXIT_TRUNCATED)
 
     pdf_path = summary_path.with_suffix(".pdf")
     meeting_type = extract_meeting_type(summary)
@@ -138,7 +164,6 @@ def main():
     export_to_pdf(summary, pdf_path, meeting_type, meeting_date)
     print(f"📄 PDF saved: {pdf_path}")
 
-    print(f"\n✅ Summary saved: {summary_path}\n")
     print("=" * 70)
     print(summary)
     print("=" * 70)

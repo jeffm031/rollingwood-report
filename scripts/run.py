@@ -189,7 +189,14 @@ def summarize(transcript: str, video_title: str, video_url: str, video_id: str) 
             f"⚠️  Warning: Claude hit the max_tokens ceiling (32000); summary may be truncated.",
             file=sys.stderr,
         )
-    return "".join(b.text for b in final.content if b.type == "text")
+    summary = "".join(b.text for b in final.content if b.type == "text")
+    # Safety net: the prompt asks Claude to substitute the VIDEO ID field for
+    # the literal `VIDEO_ID` token in citation URLs. If it copies the token
+    # verbatim instead, every timestamp link breaks — so substitute
+    # deterministically here. A correct model run leaves nothing to replace.
+    if video_id:
+        summary = summary.replace("VIDEO_ID", video_id)
+    return summary
 
 
 # --- Step 5: Deliver (Drive + Gmail) ----------------------------------------

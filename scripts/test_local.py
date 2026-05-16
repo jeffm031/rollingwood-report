@@ -84,7 +84,14 @@ def summarize(transcript: str, meeting_title: str, video_id: str = "") -> str:
             f"⚠️  Warning: Claude hit the max_tokens ceiling (32000); summary may be truncated.",
             file=sys.stderr,
         )
-    return "".join(b.text for b in final.content if b.type == "text")
+    summary = "".join(b.text for b in final.content if b.type == "text")
+    # Safety net: the prompt asks Claude to substitute the VIDEO ID field for
+    # the literal `VIDEO_ID` token in citation URLs. If it copies the token
+    # verbatim instead, every timestamp link breaks — so substitute
+    # deterministically here. A correct model run leaves nothing to replace.
+    if video_id:
+        summary = summary.replace("VIDEO_ID", video_id)
+    return summary
 
 
 def main():
@@ -115,6 +122,13 @@ def main():
         video_id = video_id[:-1]
     else:
         meeting_title, video_id = stem, ""
+        print(
+            f"⚠️  No '[<video id>]' bracket in filename '{audio_path.name}' — "
+            f"timestamp citation links will be omitted from the summary. "
+            f"Rename the file to '<title> [<youtube id>].<ext>' to enable "
+            f"verifiable links.",
+            file=sys.stderr,
+        )
     summary = summarize(transcript, meeting_title, video_id)
     summary_path.write_text(summary)
 

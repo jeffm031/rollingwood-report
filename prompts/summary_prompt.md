@@ -4,7 +4,12 @@ Write in the register of a careful municipal newsletter or the Austin Monitor: t
 
 # Output format
 
-Produce a Markdown report with the following sections, in this order. Omit a section only if it genuinely has no content — do not pad.
+Produce a Markdown report. Begin with a one-line dateline, then the numbered sections below, in this order. Omit a section only if it genuinely has no content — do not pad.
+
+## Dateline
+A single italicized line at the very top of the report, above the Executive Summary — it carries no section heading of its own. Separated by middots (·), state: meeting type, date, start time, approximate duration, and member attendance as "N of M members present". Include only the fields the transcript supports — omit a field rather than guess. Example:
+
+*Regular City Council Meeting · May 13, 2026, 7:00 p.m. · approx. 3 hr 12 min · 5 of 5 members present*
 
 ## 1. Executive Summary
 3–5 bullets summarizing the meeting's most significant developments. Purely factual — what was discussed, what was decided, who said what. No characterizations of political stakes, winners, or losers.
@@ -17,49 +22,41 @@ Upcoming meetings, deadlines, hearings, comment periods, and ways residents can 
 - Which body is expected to act, and by when, if stated
 If nothing concrete, say "No specific follow-up dates announced."
 
-## 3. Meeting Details
-- **Meeting type:** (Regular City Council / Special / Workshop / Parks Commission / P&Z / RCDC / Joint / etc.)
-- **Date:** (infer from context if stated; otherwise "not stated")
-- **Attendees:** Council members on dais; city staff named; non-Rollingwood officials named (note their jurisdiction, e.g., "Mayor James Vaughn, City of Westlake Hills"); members of the public who spoke
-- **Approximate duration:** (from transcript length if not stated)
-
-## 4. Agenda Items & Discussion
+## 3. Agenda Items & Discussion
 Numbered list matching the meeting's own agenda numbering if detectable. For each item:
 - **Item title** (short)
 - **Discussion summary** (2–5 sentences, neutral third-person). Attribute substantive arguments and factual claims to named speakers with their role ("Councilmember Hudson said…", "Mayor Vaughn of Westlake Hills said…", "Bill Bunch of the SOS Alliance said…"). When the discussion featured disagreement, represent each viewpoint fairly — give the same level of detail to each side's argument.
 - **Outcome:** approved / denied / tabled / discussion only / continued to [date]
 - **Vote** (if taken): e.g., "5–0" or "3–2 (Schell, Brown opposed)"
 
-## 5. Votes Taken
-A clean table of every formal vote, even if repeated from Section 4:
+## 4. Votes Taken
+A clean table of every formal vote, even if repeated from Section 3:
 | Item | Motion | Vote | Notes |
 
-## 6. Public Comments
+## 5. Public Comments
 Bulleted list of every member of the public (and non-Rollingwood officials) who spoke, formatted as: "**Name (affiliation/address if given)** — Topic — Position/ask." Represent viewpoints in whatever proportions they occurred. Summarize each speaker's core argument in one neutral sentence. Do not aggregate or collapse opposing speakers into a single line.
 
-## 7. Parks & City Projects Updates
-Anything touching Rollingwood Park, Lee Drive, Nixon, streets, drainage, signage, city facilities, or ongoing/proposed capital projects. Include comments made by Council, staff, or residents. If nothing, say "None this meeting."
-
-## 8. Financial & Budget Items
-Any discussion of money: fees, budgets, audits, contracts, grants, bond items, cost estimates referenced during discussion (even third-party projects), or revenue. Include dollar figures where stated. If nothing, say "None this meeting."
-
-## 9. Key Quotes
+## 6. Key Quotes
 Up to 5 quotes, each under 15 words, attributed to the speaker with their role. Select quotes that convey the tone or specificity of the meeting across viewpoints — if the meeting featured disagreement, include quotes from more than one side. Do not select quotes that editorialize. Skip the section if nothing rises to this bar.
 
-## Appendix: Notes on Sources and Uncertainty
-A single back-of-report appendix combining two things the editor needs but the general reader does not. Use two subheadings:
+## 7. Appendix
+Back-of-report reference and editorial material — facts the editor and the verifying reader need, kept out of the main report flow. Use the three subheadings below, in this order. Meeting Details always appears; omit Transcript notes or Names to verify only when that subsection has no content.
+
+### Meeting Details
+- **Meeting type:** (Regular City Council / Special / Workshop / Parks Commission / P&Z / RCDC / Joint / etc.)
+- **Date:** (infer from context if stated; otherwise "not stated")
+- **Attendees:** Council members on dais; city staff named; non-Rollingwood officials named (note their jurisdiction, e.g., "Mayor James Vaughn, City of Westlake Hills"); members of the public who spoke
+- **Approximate duration:** (from transcript length if not stated)
 
 ### Transcript notes
 Flag any transcription artifacts, garbled names, or factual misstatements made during the meeting that a reader should be aware of (e.g., "The Mayor stated the date as August 14, 2026; context confirms the meeting was April 14, 2026."). If nothing needs flagging, omit this subsection.
 
 ### Names to verify
-Every person named in sections 1–9 whose name did NOT resolve to an entry in the Rollingwood roster appended at the end of this prompt. A name that matches a roster entry — even one where the match felt approximate, or where the canonical spelling differs from the transcript — is considered resolved and MUST NOT appear here. The roster is authoritative for "resolved" status; do not use this subsection to annotate, cite, or flag roster-matched names. Example: if the transcript says "Trey Fletcher" and the roster has an entry for "Trey Fletcher" under a jurisdiction subsection (e.g., West Lake Hills), Fletcher is considered resolved and MUST NOT appear in Names-to-Verify, even when his role is ambiguous relative to a similar role on the Rollingwood side (such as Rollingwood's own City Administrator). Format each as:
+Every person named anywhere in the report whose name did NOT resolve to an entry in the Rollingwood roster appended at the end of this prompt. A name that matches a roster entry — even one where the match felt approximate, or where the canonical spelling differs from the transcript — is considered resolved and MUST NOT appear here. The roster is authoritative for "resolved" status; do not use this subsection to annotate, cite, or flag roster-matched names. Example: if the transcript says "Trey Fletcher" and the roster has an entry for "Trey Fletcher" under a jurisdiction subsection (e.g., West Lake Hills), Fletcher is considered resolved and MUST NOT appear in Names-to-Verify, even when his role is ambiguous relative to a similar role on the Rollingwood side (such as Rollingwood's own City Administrator). Format each as:
 
 - **\<Name as written\>** — one short sentence of surrounding context (just enough for the editor to locate it).
 
 If every named person resolved to the roster, omit this subsection.
-
-If both subsections are empty, omit the entire appendix.
 
 # Rules
 
@@ -71,7 +68,7 @@ If both subsections are empty, omit the entire appendix.
 - **Speaker labels** are generic ("Speaker A", "Speaker B"). Use names only where context clearly identifies the speaker; note "(speaker identity inferred)" when making a non-obvious attribution.
 - **No hedging fluff.** Skip phrases like "it appears that" or "the council seemed to." State what happened.
 - **Flag clear transcription errors** in the "Transcript notes" subsection of the Appendix rather than inline, unless the error would cause reader confusion mid-sentence.
-- **No preamble, no sign-off.** Start directly with "## 1. Executive Summary". Do not end with a closing note, disclaimer, or invitation.
+- **No preamble, no sign-off.** Start directly with the dateline. Do not end with a closing note, disclaimer, or invitation.
 - **Timestamp citation via YouTube links.** When the user message includes a `VIDEO ID:` field, every attribution, decision, vote, quote, and discussion item must cite a timestamped link so the reader can verify. Use the format `[(H:MM:SS)](https://www.youtube.com/watch?v=VIDEO_ID&t=NNNs)` where `VIDEO_ID` is the value of the `VIDEO ID:` field and `NNN` is the integer-second start time of a speaker turn in the transcript, read verbatim from the `(H:MM:SS)` marker at the start of a transcript line. Two rules govern WHICH turn to cite: (a) **speaker accuracy is mandatory** — the cited turn must be a turn by the speaker to whom the summary attributes the claim, never a different speaker's turn, even one that is adjacent in time; and (b) **one citation per claim, no cluster anchors** — each distinct claim gets its own citation evaluated against (a), and you may NOT reuse a single timestamp across claims made in different speaker turns; claims made within the same speaker's single continuous turn correctly share that turn's timestamp. For example: an earlier public-comment speaker's turn-start timestamp is NOT a valid citation for claims made later by a different speaker, even when both speakers addressed the same topic in the same segment of the meeting. If no `VIDEO ID:` is provided, omit the citation rather than fabricate a URL.
 
 # Name cross-reference (roster)

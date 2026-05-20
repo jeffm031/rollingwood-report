@@ -7,6 +7,11 @@ Usage:
     export ASSEMBLYAI_API_KEY=...
     python scripts/test_local.py "/Users/jeffmarx/Special City Council Meeting 4-14-2026 [ecUUdeLa5_A].mp4"
 
+Optional --packet accepts a URL or local PDF path; its extracted text is
+prepended to the model input ahead of the transcript so the summary can
+ground itself in the scheduled agenda items (the recording is still
+authoritative for what actually happened).
+
 Output:
     - Transcript saved next to the input as .transcript.txt (cached)
     - Summary saved next to the input as .summary.md
@@ -14,6 +19,7 @@ Output:
       in which case the script exits with code 3 (EXIT_TRUNCATED)
 """
 
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -26,6 +32,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 from pdf_export import derive_meeting_date, export_to_pdf, extract_meeting_type
 import roster as _roster
+from scrape_tier2 import cached_packet_bytes, extract_text
 
 PROMPT_FILE = Path(__file__).parent.parent / "prompts" / "summary_prompt.md"
 CLAUDE_MODEL = "claude-opus-4-7"
@@ -70,8 +77,51 @@ def transcribe(audio_path: Path) -> str:
     return "\n\n".join(lines)
 
 
+def load_packet_text(packet_arg: str) -> str:
+    """Fetch (URL) or read (local path) a packet PDF and return its text.
+
+    Reuses ``scrape_tier2.cached_packet_bytes`` for URLs (so repeat runs hit
+    the same ``data/packet_cache/`` the Tier 2 scraper uses) and
+    ``scrape_tier2.extract_text`` for PDF→text. Returns ``""`` on any
+    failure — the caller is expected to warn and continue without a packet
+    rather than aborting the run.
+    """
+    if packet_arg.startswith(("http://", "https://")):
+        print(f"📎 Fetching agenda packet: {packet_arg}")
+        try:
+            pdf_bytes = cached_packet_bytes(packet_arg)
+        except Exception as e:
+            print(
+                f"⚠️  Packet download failed ({e}); continuing without packet.",
+                file=sys.stderr,
+            )
+            return ""
+    else:
+        packet_path = Path(packet_arg).expanduser()
+        if not packet_path.exists():
+            print(
+                f"⚠️  Packet file not found: {packet_path}; continuing without packet.",
+                file=sys.stderr,
+            )
+            return ""
+        print(f"📎 Reading agenda packet: {packet_path.name}")
+        pdf_bytes = packet_path.read_bytes()
+    text = extract_text(pdf_bytes)
+    if not text.strip():
+        print(
+            "⚠️  Packet PDF yielded empty text; continuing without packet.",
+            file=sys.stderr,
+        )
+        return ""
+    print(f"   ↳ packet text: {len(text):,} chars")
+    return text
+
+
 def summarize(
-    transcript: str, meeting_title: str, video_id: str = ""
+    transcript: str,
+    meeting_title: str,
+    video_id: str = "",
+    packet_text: str = "",
 ) -> tuple[str, str]:
     """Summarize the transcript with Claude.
 
@@ -83,8 +133,17 @@ def summarize(
     print(f"🧠 Summarizing with Claude {CLAUDE_MODEL}...")
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     system_prompt = PROMPT_FILE.read_text() + "\n\n" + _roster.format_for_prompt()
+    packet_block = ""
+    if packet_text:
+        packet_block = (
+            "=== AGENDA PACKET (scheduled items; the recording is authoritative "
+            "for what actually occurred) ===\n"
+            f"{packet_text}\n"
+            "=== END AGENDA PACKET ===\n\n"
+        )
     user_content = (
-        f"MEETING TITLE: {meeting_title}\n"
+        packet_block
+        + f"MEETING TITLE: {meeting_title}\n"
         + (f"VIDEO ID: {video_id}\n\n" if video_id else "\n")
         + f"TRANSCRIPT:\n\n{transcript}"
     )
@@ -108,14 +167,28 @@ def summarize(
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python scripts/test_local.py <path-to-mp4-or-mp3>")
-        sys.exit(1)
+    ap = argparse.ArgumentParser(
+        description="Transcribe + summarize a meeting recording locally."
+    )
+    ap.add_argument("audio", help="Path to the meeting MP4/MP3.")
+    ap.add_argument(
+        "--packet",
+        default=None,
+        help=(
+            "Optional URL or local path to the meeting's agenda packet PDF. "
+            "When present, its extracted text is prepended to the model input "
+            "ahead of the transcript. Failures (download error, missing file, "
+            "or empty text) warn and continue without the packet."
+        ),
+    )
+    args = ap.parse_args()
 
-    audio_path = Path(sys.argv[1]).expanduser()
+    audio_path = Path(args.audio).expanduser()
     if not audio_path.exists():
         print(f"❌ File not found: {audio_path}")
         sys.exit(1)
+
+    packet_text = load_packet_text(args.packet) if args.packet else ""
 
     # Cache transcript so re-runs skip the expensive step
     transcript_path = audio_path.with_suffix(audio_path.suffix + ".transcript.txt")
@@ -142,7 +215,7 @@ def main():
             f"verifiable links.",
             file=sys.stderr,
         )
-    summary, stop_reason = summarize(transcript, meeting_title, video_id)
+    summary, stop_reason = summarize(transcript, meeting_title, video_id, packet_text)
     # Write the .md unconditionally — even a truncated summary should be
     # inspectable so the operator can decide whether to keep it or re-run.
     summary_path.write_text(summary)

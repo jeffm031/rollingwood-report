@@ -20,8 +20,11 @@ Output:
 """
 
 import argparse
+import hashlib
 import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import anthropic
@@ -32,7 +35,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 from pdf_export import derive_meeting_date, export_to_pdf, extract_meeting_type
 import roster as _roster
-from scrape_tier2 import cached_packet_bytes, extract_text
+from scrape_tier2 import CACHE_DIR, cached_packet_bytes, extract_text
 
 PROMPT_FILE = Path(__file__).parent.parent / "prompts" / "summary_prompt.md"
 CLAUDE_MODEL = "claude-opus-4-7"
@@ -77,6 +80,76 @@ def transcribe(audio_path: Path) -> str:
     return "\n\n".join(lines)
 
 
+def _ocr_pdf_bytes(pdf_bytes: bytes) -> str:
+    """OCR pdf_bytes via ocrmypdf; return extracted text. Cached by content SHA1.
+
+    Called when extract_text returned no text (image-only PDF). The OCR result
+    is cached as ``data/packet_cache/<sha1>.ocr.txt`` keyed off the PDF's
+    content hash, so re-running with the same input (URL or local file) skips
+    the OCR pass. Returns ``""`` if ocrmypdf is missing, errors, times out, or
+    yields empty text; the caller is expected to warn-and-continue.
+    """
+    key = hashlib.sha1(pdf_bytes).hexdigest()[:16]
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    sidecar = CACHE_DIR / f"{key}.ocr.txt"
+    if sidecar.exists():
+        cached = sidecar.read_text()
+        print(f"   ↳ OCR cached: {sidecar.name} ({len(cached):,} chars)")
+        return cached
+
+    print("🔎 Empty text layer; running OCR (ocrmypdf) — this may take 30s+...")
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            in_path = Path(td) / "input.pdf"
+            out_path = Path(td) / "ocr.pdf"
+            tmp_sidecar = Path(td) / "ocr.txt"
+            in_path.write_bytes(pdf_bytes)
+            subprocess.run(
+                ["ocrmypdf", "--force-ocr", "--sidecar", str(tmp_sidecar),
+                 str(in_path), str(out_path)],
+                check=True, capture_output=True, timeout=600,
+            )
+            ocr_text = tmp_sidecar.read_text() if tmp_sidecar.exists() else ""
+    except FileNotFoundError:
+        print(
+            "⚠️  ocrmypdf not installed (brew install ocrmypdf); "
+            "continuing without packet.",
+            file=sys.stderr,
+        )
+        return ""
+    except subprocess.CalledProcessError as e:
+        stderr_tail = (e.stderr or b"").decode(errors="replace")[-400:]
+        print(
+            f"⚠️  ocrmypdf failed (exit {e.returncode}); continuing without packet.\n"
+            f"    stderr tail: {stderr_tail}",
+            file=sys.stderr,
+        )
+        return ""
+    except subprocess.TimeoutExpired:
+        print(
+            "⚠️  ocrmypdf timed out (>10 min); continuing without packet.",
+            file=sys.stderr,
+        )
+        return ""
+    except Exception as e:
+        print(
+            f"⚠️  OCR failed ({type(e).__name__}: {e}); continuing without packet.",
+            file=sys.stderr,
+        )
+        return ""
+
+    if not ocr_text.strip():
+        print(
+            "⚠️  OCR yielded empty text; continuing without packet.",
+            file=sys.stderr,
+        )
+        return ""
+
+    sidecar.write_text(ocr_text)
+    print(f"   ↳ OCR text: {len(ocr_text):,} chars (cached to {sidecar.name})")
+    return ocr_text
+
+
 def load_packet_text(packet_arg: str) -> str:
     """Fetch (URL) or read (local path) a packet PDF and return its text.
 
@@ -108,11 +181,10 @@ def load_packet_text(packet_arg: str) -> str:
         pdf_bytes = packet_path.read_bytes()
     text = extract_text(pdf_bytes)
     if not text.strip():
-        print(
-            "⚠️  Packet PDF yielded empty text; continuing without packet.",
-            file=sys.stderr,
-        )
-        return ""
+        # Image-only PDF (e.g. Rollingwood agenda PDFs). Try OCR before bailing.
+        text = _ocr_pdf_bytes(pdf_bytes)
+        if not text.strip():
+            return ""  # _ocr_pdf_bytes already printed the failure warning
     print(f"   ↳ packet text: {len(text):,} chars")
     return text
 

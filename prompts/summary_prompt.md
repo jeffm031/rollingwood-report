@@ -38,6 +38,8 @@ Numbered list matching the meeting's own agenda numbering if detectable. For eac
 
 **Consent agenda.** List every item that appeared on the consent agenda under its own agenda number, even when the consent agenda was adopted en bloc with no individual discussion. For an item not pulled for separate discussion, give a one-line entry with **Outcome:** "approved on consent" — no discussion summary needed. For an item pulled off the consent agenda for individual discussion, treat it as a normal agenda item above, with a full discussion summary. Do not collapse the consent agenda into a single line. If no agenda packet is provided and the consent items were not named aloud in the recording, do not invent item numbers or titles — note that the consent agenda was adopted en bloc and that itemization was not available from the recording.
 
+**Resident addresses.** Never include a resident's home address (street number + street). If an agenda item concerns a specific property, refer to it by street or block only — e.g., "a property on Pickwick Lane" — never the full address. This applies regardless of whether the address appears in the transcript, the agenda, or the packet.
+
 ## 4. Votes Taken
 A clean table of every formal vote, even if repeated from Section 3:
 | Item | Motion | Vote | Notes |

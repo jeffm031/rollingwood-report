@@ -114,6 +114,13 @@ A few commitments I'm making and intend to keep:
   meetings. It doesn't speculate about political races, campaign
   dynamics, or regional politics beyond what appeared on the agenda.
 - **Disclosure, not recusal.** See the next section.
+- **Resident addresses.** The Report does not publish residents' home
+  addresses. Home addresses are never stored in the name roster and
+  are never drawn from meeting packets or agendas. Where an agenda
+  item concerns a specific property, the Report identifies it at the
+  block or street level (e.g., "a residence on Pickwick Lane")
+  without the street number. This is enforced by the summarization
+  prompt and checked in the quarterly audit.
 
 ## Conflicts of interest and disclosures
 
